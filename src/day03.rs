@@ -161,22 +161,10 @@ fn test_spiral_next() {
 }
 
 #[test]
-fn answer1_square_1() {
+fn test_answer1() {
     assert_eq!(answer1(1), 0);
-}
-
-#[test]
-fn answer1_square_12() {
     assert_eq!(answer1(12), 3);
-}
-
-#[test]
-fn answer1_square_23() {
     assert_eq!(answer1(23), 2);
-}
-
-#[test]
-fn answer1_square_1024() {
     assert_eq!(answer1(1024), 31);
 }
 

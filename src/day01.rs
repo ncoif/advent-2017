@@ -33,46 +33,18 @@ pub fn answer2(input: &str) -> u32 {
 }
 
 #[test]
-fn answer1_1122() {
+fn test_answer1() {
     assert_eq!(answer1("1122"), 3);
-}
-
-#[test]
-fn answer1_1111() {
     assert_eq!(answer1("1111"), 4);
-}
-
-#[test]
-fn answer1_1234() {
     assert_eq!(answer1("1234"), 0);
-}
-
-#[test]
-fn answer1_91212129() {
     assert_eq!(answer1("91212129"), 9);
 }
 
 #[test]
-fn answer2_1212() {
+fn test_answer2() {
     assert_eq!(answer2("1212"), 6);
-}
-
-#[test]
-fn answer2_1221() {
     assert_eq!(answer2("1221"), 0);
-}
-
-#[test]
-fn answer2_123425() {
     assert_eq!(answer2("123425"), 4);
-}
-
-#[test]
-fn answer2_123123() {
     assert_eq!(answer2("123123"), 12);
-}
-
-#[test]
-fn answer2_12131415() {
     assert_eq!(answer2("12131415"), 4);
 }
