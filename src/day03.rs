@@ -9,7 +9,7 @@ struct Spiral {
     leg: u8,
     layer: isize,
     size: usize,
-    grid: Vec<Vec<u32>>,
+    grid: Vec<u32>,
 }
 
 impl Spiral {
@@ -23,20 +23,26 @@ impl Spiral {
         let mut spiral = Spiral::default();
 
         // overshooting here, by creating a grid much larger than necessary
-        let mut grid: Vec<Vec<u32>> = vec![vec![]; size];
-        (0..size).for_each(|x| grid[x] = vec![0; size]);
-        spiral.grid = grid;
+        spiral.size = size;
+        spiral.grid = vec![0; size * size];
 
-        let center = ((size) / 2) as isize;
-        spiral.grid[center as usize][center as usize] = 1;
+        let access = |(x, y)| (x as usize + size * y as usize) as usize;
+
+        let center = (size as isize / 2, size as isize / 2);
+        println!("{:?}", access(center));
+        spiral.grid[access(center)] = 1;
 
         (1..size).for_each(|_| {
             spiral.next();
-            let center_d = ((center + spiral.dx) as usize, (center + spiral.dy) as usize);
-            println!("{:?}", center_d);
-            spiral.grid[center_d.0][center_d.1] = spiral.neighbourd_sum(center_d);
+            let center_d = (center.0 + spiral.dx, center.1 + spiral.dy);
+            spiral.grid[access(center_d)] = spiral.neighbourd_sum(center_d);
         });
         spiral
+    }
+
+    fn grid(&self, p: (isize, isize)) -> u32 {
+        let access = |(x, y)| (x as usize + self.size * y as usize) as usize;
+        self.grid[access(p)]
     }
 
     fn next(&mut self) {
@@ -70,16 +76,16 @@ impl Spiral {
         };
     }
 
-    fn neighbourd_sum(&self, center: (usize, usize)) -> u32 {
-        self.grid[center.0][center.1]
-            + self.grid[center.0 + 1][center.1]
-            + self.grid[center.0 - 1][center.1]
-            + self.grid[center.0][center.1 + 1]
-            + self.grid[center.0 + 1][center.1 + 1]
-            + self.grid[center.0 - 1][center.1 + 1]
-            + self.grid[center.0][center.1 - 1]
-            + self.grid[center.0 + 1][center.1 - 1]
-            + self.grid[center.0 - 1][center.1 - 1]
+    fn neighbourd_sum(&self, center: (isize, isize)) -> u32 {
+        self.grid(center)
+            + self.grid((center.0 + 1, center.1))
+            + self.grid((center.0 - 1, center.1))
+            + self.grid((center.0, center.1 + 1))
+            + self.grid((center.0 + 1, center.1 + 1))
+            + self.grid((center.0 - 1, center.1 + 1))
+            + self.grid((center.0, center.1 - 1))
+            + self.grid((center.0 + 1, center.1 - 1))
+            + self.grid((center.0 - 1, center.1 - 1))
     }
 }
 
@@ -135,15 +141,15 @@ fn test_spiral_grid() {
 
     println!("{:?}", spiral);
 
-    assert_eq!(spiral.grid[4 + 0][4 + 0], 1);
-    assert_eq!(spiral.grid[4 + 1][4 + 0], 1);
-    assert_eq!(spiral.grid[4 + 1][4 + 1], 2);
-    assert_eq!(spiral.grid[4 + 0][4 + 1], 4);
-    assert_eq!(spiral.grid[4 - 1][4 + 1], 5);
-    assert_eq!(spiral.grid[4 - 1][4 + 0], 10);
-    assert_eq!(spiral.grid[4 - 1][4 - 1], 11);
-    assert_eq!(spiral.grid[4 + 0][4 - 1], 23);
-    assert_eq!(spiral.grid[4 + 1][4 - 1], 25);
+    assert_eq!(spiral.grid((4 + 0, 4 + 0)), 1);
+    assert_eq!(spiral.grid((4 + 1, 4 + 0)), 1);
+    assert_eq!(spiral.grid((4 + 1, 4 + 1)), 2);
+    assert_eq!(spiral.grid((4 + 0, 4 + 1)), 4);
+    assert_eq!(spiral.grid((4 - 1, 4 + 1)), 5);
+    assert_eq!(spiral.grid((4 - 1, 4 + 0)), 10);
+    assert_eq!(spiral.grid((4 - 1, 4 - 1)), 11);
+    assert_eq!(spiral.grid((4 + 0, 4 - 1)), 23);
+    assert_eq!(spiral.grid((4 + 1, 4 - 1)), 25);
 }
 
 #[test]
