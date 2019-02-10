@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub fn title() -> &'static str {
     "Day 3: Spiral Memory"
 }
@@ -8,41 +10,23 @@ struct Spiral {
     dy: isize,
     leg: u8,
     layer: isize,
-    size: usize,
+    size: isize,
     grid: Vec<u32>,
 }
 
 impl Spiral {
-    fn new1(size: usize) -> Self {
+    fn new(size: isize) -> Self {
         let mut spiral = Spiral::default();
         (1..size).for_each(|_| spiral.next());
         spiral
     }
 
-    fn new2(size: usize) -> Self {
-        let mut spiral = Spiral::default();
-
-        // overshooting here, by creating a grid much larger than necessary
-        spiral.size = size;
-        spiral.grid = vec![0; size * size];
-
-        let access = |(x, y)| (x as usize + size * y as usize) as usize;
-
-        let center = (size as isize / 2, size as isize / 2);
-        println!("{:?}", access(center));
-        spiral.grid[access(center)] = 1;
-
-        (1..size).for_each(|_| {
-            spiral.next();
-            let center_d = (center.0 + spiral.dx, center.1 + spiral.dy);
-            spiral.grid[access(center_d)] = spiral.neighbourd_sum(center_d);
-        });
-        spiral
+    fn get(&self, p: (isize, isize)) -> u32 {
+        self.grid[(p.0 + self.size * p.1) as usize]
     }
 
-    fn grid(&self, p: (isize, isize)) -> u32 {
-        let access = |(x, y)| (x as usize + self.size * y as usize) as usize;
-        self.grid[access(p)]
+    fn set(&mut self, p: (isize, isize), val: u32) {
+        self.grid[(p.0 + self.size * p.1) as usize] = val;
     }
 
     fn next(&mut self) {
@@ -74,18 +58,26 @@ impl Spiral {
             }
             _ => unreachable!(),
         };
+
+        if 2 * (self.dx + 1) > self.size {
+            self.size = 2 * (self.dx + 1);
+        }
+        if 2 * (self.dy + 1) > self.size {
+            self.size = 2 * (self.dy + 1);
+        }
     }
 
     fn neighbourd_sum(&self, center: (isize, isize)) -> u32 {
-        self.grid(center)
-            + self.grid((center.0 + 1, center.1))
-            + self.grid((center.0 - 1, center.1))
-            + self.grid((center.0, center.1 + 1))
-            + self.grid((center.0 + 1, center.1 + 1))
-            + self.grid((center.0 - 1, center.1 + 1))
-            + self.grid((center.0, center.1 - 1))
-            + self.grid((center.0 + 1, center.1 - 1))
-            + self.grid((center.0 - 1, center.1 - 1))
+        let mut ret = 0;
+        for y in center.0.saturating_sub(1)..=center.0.saturating_add(1) {
+            for x in center.1.saturating_sub(1)..=center.1.saturating_add(1) {
+                if x >= self.size || y >= self.size {
+                    continue;
+                }
+                ret += self.get((y, x));
+            }
+        }
+        ret
     }
 }
 
@@ -102,14 +94,47 @@ impl Default for Spiral {
     }
 }
 
-pub fn answer1(input: usize) -> u32 {
-    let spiral = Spiral::new1(input);
+impl fmt::Display for Spiral {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for x in 0..self.size {
+            for y in 0..self.size {
+                write!(f, "{:03} ", self.get((x, y)))?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
+}
+
+pub fn answer1(input: isize) -> u32 {
+    let spiral = Spiral::new(input);
 
     (spiral.dx.abs() + spiral.dy.abs()) as u32
 }
 
-pub fn answer2(input: usize) -> u32 {
-    0
+pub fn answer2(input: isize) -> u32 {
+    // first pass to compute the required size for the grid here
+    let spiral = Spiral::new(input);
+    let required_grid_size = spiral.size;
+
+    // second pass with the correct size
+    let mut spiral = Spiral::default();
+    spiral.size = required_grid_size;
+    spiral.grid = vec![0; (required_grid_size * required_grid_size) as usize];
+
+    let center = (required_grid_size / 2, required_grid_size / 2);
+    spiral.set(center, 1);
+
+    loop {
+        spiral.next();
+        let center_d = (center.0 + spiral.dx, center.1 + spiral.dy);
+        let sum = spiral.neighbourd_sum(center_d);
+        if sum as isize <= input {
+            spiral.set(center_d, sum);
+        } else {
+            return sum;
+        }
+    }
 }
 
 #[test]
@@ -136,23 +161,6 @@ fn test_spiral_next() {
 }
 
 #[test]
-fn test_spiral_grid() {
-    let spiral = Spiral::new2(9);
-
-    println!("{:?}", spiral);
-
-    assert_eq!(spiral.grid((4 + 0, 4 + 0)), 1);
-    assert_eq!(spiral.grid((4 + 1, 4 + 0)), 1);
-    assert_eq!(spiral.grid((4 + 1, 4 + 1)), 2);
-    assert_eq!(spiral.grid((4 + 0, 4 + 1)), 4);
-    assert_eq!(spiral.grid((4 - 1, 4 + 1)), 5);
-    assert_eq!(spiral.grid((4 - 1, 4 + 0)), 10);
-    assert_eq!(spiral.grid((4 - 1, 4 - 1)), 11);
-    assert_eq!(spiral.grid((4 + 0, 4 - 1)), 23);
-    assert_eq!(spiral.grid((4 + 1, 4 - 1)), 25);
-}
-
-#[test]
 fn answer1_square_1() {
     assert_eq!(answer1(1), 0);
 }
@@ -170,4 +178,10 @@ fn answer1_square_23() {
 #[test]
 fn answer1_square_1024() {
     assert_eq!(answer1(1024), 31);
+}
+
+#[test]
+fn test_answer2() {
+    assert_eq!(answer2(23), 25);
+    assert_eq!(answer2(747), 806);
 }
