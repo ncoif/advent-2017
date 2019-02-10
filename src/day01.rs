@@ -1,3 +1,7 @@
+pub fn title() -> &'static str {
+    "Day 01: Inverse Captcha"
+}
+
 pub fn answer1(input: &str) -> u32 {
     let digits: Vec<u32> = input
         .chars()
@@ -29,46 +33,46 @@ pub fn answer2(input: &str) -> u32 {
 }
 
 #[test]
-fn test_answer1_1122() {
+fn answer1_1122() {
     assert_eq!(answer1("1122"), 3);
 }
 
 #[test]
-fn test_answer1_1111() {
+fn answer1_1111() {
     assert_eq!(answer1("1111"), 4);
 }
 
 #[test]
-fn test_answer1_1234() {
+fn answer1_1234() {
     assert_eq!(answer1("1234"), 0);
 }
 
 #[test]
-fn test_answer1_91212129() {
+fn answer1_91212129() {
     assert_eq!(answer1("91212129"), 9);
 }
 
 #[test]
-fn test_answer2_1212() {
+fn answer2_1212() {
     assert_eq!(answer2("1212"), 6);
 }
 
 #[test]
-fn test_answer2_1221() {
+fn answer2_1221() {
     assert_eq!(answer2("1221"), 0);
 }
 
 #[test]
-fn test_answer2_123425() {
+fn answer2_123425() {
     assert_eq!(answer2("123425"), 4);
 }
 
 #[test]
-fn test_answer2_123123() {
+fn answer2_123123() {
     assert_eq!(answer2("123123"), 12);
 }
 
 #[test]
-fn test_answer2_12131415() {
+fn answer2_12131415() {
     assert_eq!(answer2("12131415"), 4);
 }
