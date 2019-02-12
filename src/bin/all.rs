@@ -22,4 +22,5 @@ fn main() {
 
     let input4 = read_file(4);
     println!("{} (1/2): {}", day04::title(), day04::answer1(&input4));
+    println!("{} (2/2): {}", day04::title(), day04::answer2(&input4));
 }
