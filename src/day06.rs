@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub fn title() -> &'static str {
     "Day 6: Memory Reallocation"
@@ -14,6 +14,20 @@ pub fn answer1(input: &str) -> u32 {
     }
 
     already_seen.len() as u32
+}
+
+pub fn answer2(input: &str) -> u32 {
+    let mut banks: Vec<u32> = parse_input(input);
+    let mut already_seen = HashMap::new();
+
+    let mut iteration: u32 = 0;
+    while !already_seen.contains_key(&banks) {
+        already_seen.insert(banks.clone(), iteration);
+        next_banks(&mut banks);
+        iteration += 1;
+    }
+
+    iteration - already_seen.get(&banks).unwrap()
 }
 
 fn parse_input(input: &str) -> Vec<u32> {
@@ -80,4 +94,11 @@ fn test_answer1() {
     let input = String::from(r#"0 2 7 0"#);
 
     assert_eq!(answer1(&input), 5);
+}
+
+#[test]
+fn test_answer2() {
+    let input = String::from(r#"0 2 7 0"#);
+
+    assert_eq!(answer2(&input), 4);
 }
