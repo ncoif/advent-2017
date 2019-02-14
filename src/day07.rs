@@ -11,7 +11,13 @@ struct Line {
     children: Option<Vec<String>>,
 }
 
-named!(name_parser<&str>, map_res!(nom::alpha, std::str::from_utf8));
+named!(
+    name_parser<String>,
+    map_res!(
+        map_res!(nom::alpha, std::str::from_utf8),
+        std::str::FromStr::from_str
+    )
+);
 
 named!(
     weight_parser<u32>,
@@ -20,6 +26,11 @@ named!(
         std::str::FromStr::from_str
     )
 );
+
+// named!(
+//     children_parse<Vec<String>>,
+//     map_res!(many0!(camel_case), std::str::FromStr::from_str)
+// ):
 
 named!(
     line<Line>,
@@ -40,6 +51,11 @@ pub fn answer1(input: &str) -> String {
     // let graph = parse_input(input);
 
     String::from("")
+}
+
+#[test]
+fn parse_simple_name() {
+    assert_eq!(name_parser(b"pbga "), Ok((&b" "[..], "pbga".to_string())));
 }
 
 #[test]
