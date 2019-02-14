@@ -61,33 +61,15 @@ aa bb cc dd aaa"#,
 #[test]
 fn test_is_valid() {
     assert_eq!(
-        is_valid(&vec![
-            "aa".to_string(),
-            "bb".to_string(),
-            "cc".to_string(),
-            "dd".to_string(),
-            "ee".to_string()
-        ]),
+        is_valid(&vec_of_strings!["aa", "bb", "cc", "dd", "ee"]),
         true
     );
     assert_eq!(
-        is_valid(&vec![
-            "aa".to_string(),
-            "bb".to_string(),
-            "cc".to_string(),
-            "dd".to_string(),
-            "aa".to_string()
-        ]),
+        is_valid(&vec_of_strings!["aa", "bb", "cc", "dd", "aa"]),
         false
     );
     assert_eq!(
-        is_valid(&vec![
-            "aa".to_string(),
-            "bb".to_string(),
-            "cc".to_string(),
-            "dd".to_string(),
-            "aaa".to_string()
-        ]),
+        is_valid(&vec_of_strings!["aa", "bb", "cc", "dd", "aaa"]),
         true
     );
 }
@@ -108,46 +90,18 @@ oiii ioii iioi iiio"#,
 
 #[test]
 fn test_is_valid_2() {
+    assert_eq!(is_valid_2(&vec_of_strings!["abcde", "fghij"]), true);
+    assert_eq!(is_valid_2(&vec_of_strings!["abcde", "xyz", "ecdab"]), false);
     assert_eq!(
-        is_valid_2(&vec!["abcde".to_string(), "fghij".to_string()]),
+        is_valid_2(&vec_of_strings!["a", "ab", "abc", "abd", "abf", "abj"]),
         true
     );
     assert_eq!(
-        is_valid_2(&vec![
-            "abcde".to_string(),
-            "xyz".to_string(),
-            "ecdab".to_string()
-        ]),
-        false
-    );
-    assert_eq!(
-        is_valid_2(&vec![
-            "a".to_string(),
-            "ab".to_string(),
-            "abc".to_string(),
-            "abd".to_string(),
-            "abf".to_string(),
-            "abj".to_string()
-        ]),
+        is_valid_2(&vec_of_strings!["iiii", "oiii", "ooii", "oooi", "oooo"]),
         true
     );
     assert_eq!(
-        is_valid_2(&vec![
-            "iiii".to_string(),
-            "oiii".to_string(),
-            "ooii".to_string(),
-            "oooi".to_string(),
-            "oooo".to_string()
-        ]),
-        true
-    );
-    assert_eq!(
-        is_valid_2(&vec![
-            "oiii".to_string(),
-            "ioii".to_string(),
-            "iioi".to_string(),
-            "iiio".to_string()
-        ]),
+        is_valid_2(&vec_of_strings!["oiii", "ioii", "iioi", "iiio"]),
         false
     );
 }
