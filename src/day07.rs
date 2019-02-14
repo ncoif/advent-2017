@@ -27,10 +27,10 @@ named!(
     )
 );
 
-// named!(
-//     children_parse<Vec<String>>,
-//     map_res!(many0!(camel_case), std::str::FromStr::from_str)
-// ):
+named!(
+    children_parser<Vec<String>>,
+    separated_nonempty_list!(tag!(", "), name_parser) // map_res!(many0!(name: name_parser >> opt!(tag!(", "))), std::str::FromStr::from_str)
+);
 
 named!(
     line<Line>,
@@ -39,10 +39,12 @@ named!(
             >> tag!(" (")
             >> weight: weight_parser
             >> tag!(")")
+            >> opt!(tag!(" -> "))
+            >> children: opt!(children_parser)
             >> (Line {
                 name: name.to_string(),
                 weight: weight,
-                children: None
+                children: children
             })
     )
 );
@@ -56,14 +58,27 @@ pub fn answer1(input: &str) -> String {
 #[test]
 fn parse_simple_name() {
     assert_eq!(name_parser(b"pbga "), Ok((&b" "[..], "pbga".to_string())));
+    assert_eq!(name_parser(b"pbga\n"), Ok((&b"\n"[..], "pbga".to_string())));
+}
+
+#[test]
+fn parse_simple_list() {
+    assert_eq!(
+        children_parser(b"ktlj, cntj, xhth\n"),
+        Ok((&b"\n"[..], vec_of_strings!["ktlj", "cntj", "xhth"]))
+    );
+    assert_eq!(
+        children_parser(b"ktlj, cntj, xhth "),
+        Ok((&b" "[..], vec_of_strings!["ktlj", "cntj", "xhth"]))
+    );
 }
 
 #[test]
 fn parse_line_without_children() {
     assert_eq!(
-        line(b"pbga (66)"),
+        line(b"pbga (66)\n"),
         Ok((
-            &b""[..],
+            &b"\n"[..],
             Line {
                 name: "pbga".to_string(),
                 weight: 66,
@@ -76,17 +91,13 @@ fn parse_line_without_children() {
 #[test]
 fn parse_line_with_children() {
     assert_eq!(
-        line(b"fwft (72) -> ktlj, cntj, xhth"),
+        line(b"fwft (72) -> ktlj, cntj, xhth\n"),
         Ok((
-            &b""[..],
+            &b"\n"[..],
             Line {
                 name: "fwft".to_string(),
                 weight: 72,
-                children: Some(vec![
-                    "ktlj".to_string(),
-                    "cntj".to_string(),
-                    "xhth".to_string()
-                ])
+                children: Some(vec_of_strings!["ktlj", "cntj", "xhth"])
             }
         ))
     );
