@@ -1,3 +1,4 @@
+use nom::types::CompleteStr;
 use petgraph::Graph;
 
 pub fn title() -> &'static str {
@@ -33,7 +34,7 @@ named!(
 );
 
 named!(
-    line<Line>,
+    line_parser<Line>,
     do_parse!(
         name: name_parser
             >> tag!(" (")
@@ -50,9 +51,32 @@ named!(
 );
 
 pub fn answer1(input: &str) -> String {
-    // let graph = parse_input(input);
+    let graph = parse_input(input);
 
     String::from("")
+}
+
+fn parse_input(input: &str) -> Graph<(&str, u32), (&str, u32)> {
+    let mut graph = Graph::<(&str, u32), (&str, u32)>::new();
+
+    let lines = input.split('\n');
+    for line in lines.filter(|l| *l != "") {
+        let line = line_parser(line.as_bytes());
+        println!("{:?}", line);
+        //dbg!(&children);
+    }
+
+    graph
+
+    // let pg = deps.add_node("petgraph");
+    // let fb = deps.add_node("fixedbitset");
+    // let qc = deps.add_node("quickcheck");
+    // let rand = deps.add_node("rand");
+    // let libc = deps.add_node("libc");
+    // deps.extend_with_edges(&[
+    //     (pg, fb), (pg, qc),
+    //     (qc, rand), (rand, libc), (qc, libc),
+    // ]);
 }
 
 #[test]
@@ -76,7 +100,7 @@ fn parse_simple_list() {
 #[test]
 fn parse_line_without_children() {
     assert_eq!(
-        line(b"pbga (66)\n"),
+        line_parser(b"pbga (66)\n"),
         Ok((
             &b"\n"[..],
             Line {
@@ -91,7 +115,7 @@ fn parse_line_without_children() {
 #[test]
 fn parse_line_with_children() {
     assert_eq!(
-        line(b"fwft (72) -> ktlj, cntj, xhth\n"),
+        line_parser(b"fwft (72) -> ktlj, cntj, xhth\n"),
         Ok((
             &b"\n"[..],
             Line {
@@ -102,33 +126,6 @@ fn parse_line_with_children() {
         ))
     );
 }
-
-// fn parse_input(input: &str) -> Graph<(&str, u32), (&str, u32)> {
-//     let mut graph = Graph::<(&str, u32), (&str, u32)>::new();
-////
-//     let lines = input.split('\n');
-//     for line in lines.filter(|l| *l != "") {
-//         dbg!(&children);
-//     }
-//
-//     graph
-//
-// // let pg = deps.add_node("petgraph");
-// // let fb = deps.add_node("fixedbitset");
-// // let qc = deps.add_node("quickcheck");
-// // let rand = deps.add_node("rand");
-// // let libc = deps.add_node("libc");
-// // deps.extend_with_edges(&[
-// //     (pg, fb), (pg, qc),
-// //     (qc, rand), (rand, libc), (qc, libc),
-// // ]);
-// //     input
-// //         .split(char::is_whitespace)
-// //         .map(|n| n.parse::<u32>())
-// //         .filter(|n| n.is_ok())
-// //         .map(Result::unwrap) // safe because skip invalid elements
-// //         .collect()
-// }
 
 #[test]
 fn test_answer1() {
