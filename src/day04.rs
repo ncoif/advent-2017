@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 pub fn title() -> &'static str {
-    "Day 4: High-Entropy Passphrases"
+    "Day 04: High-Entropy Passphrases"
 }
 
 pub fn answer1(input: &str) -> u32 {

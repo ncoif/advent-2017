@@ -1,7 +1,7 @@
 use std::fmt;
 
 pub fn title() -> &'static str {
-    "Day 3: Spiral Memory"
+    "Day 03: Spiral Memory"
 }
 
 #[derive(Debug)]

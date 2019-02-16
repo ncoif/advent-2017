@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 pub fn title() -> &'static str {
-    "Day 6: Memory Reallocation"
+    "Day 06: Memory Reallocation"
 }
 
 pub fn answer1(input: &str) -> u32 {

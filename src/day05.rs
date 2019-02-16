@@ -1,5 +1,5 @@
 pub fn title() -> &'static str {
-    "Day 5: A Maze of Twisty Trampolines, All Alike"
+    "Day 05: A Maze of Twisty Trampolines, All Alike"
 }
 
 pub fn answer1(input: &str) -> u32 {

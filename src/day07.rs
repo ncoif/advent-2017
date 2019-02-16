@@ -4,7 +4,7 @@ use petgraph::{Direction, Graph};
 use std::collections::{HashMap, HashSet};
 
 pub fn title() -> &'static str {
-    "Day 7: Recursive Circus"
+    "Day 07: Recursive Circus"
 }
 
 #[derive(Debug, PartialEq)]
