@@ -27,7 +27,7 @@ pub fn answer2(input: &str) -> u32 {
         iteration += 1;
     }
 
-    iteration - already_seen.get(&banks).unwrap()
+    iteration - already_seen[&banks]
 }
 
 fn parse_input(input: &str) -> Vec<u32> {
