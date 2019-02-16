@@ -176,7 +176,7 @@ impl Towers {
                 .or_insert(1);
         }
         if children_weight_frequency.len() == 1 {
-            // balanced, so the borken node is unbalanced_side
+            // children balanced, so the current node is the unbalanced one
             let new_weight = (self.get(unbalanced_side).1 as i32 - weight_diff) as u32;
             Some((unbalanced_side, new_weight))
         } else {
