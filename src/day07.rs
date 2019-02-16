@@ -1,5 +1,4 @@
 use nom::types::CompleteStr;
-use petgraph::Graph;
 
 pub fn title() -> &'static str {
     "Day 7: Recursive Circus"
@@ -13,31 +12,22 @@ struct Line {
 }
 
 named!(
-    name_parser<String>,
-    map_res!(
-        map_res!(nom::alpha, std::str::from_utf8),
-        std::str::FromStr::from_str
-    )
+    name_parser<CompleteStr, String>,
+    map!(nom::alpha, |CompleteStr(s)| String::from(s))
 );
 
 named!(
-    weight_parser<u32>,
-    map_res!(
-        map_res!(
-            delimited!(char!('('), is_not!(")"), char!(')')),
-            std::str::from_utf8
-        ),
-        std::str::FromStr::from_str
-    )
+    weight_parser<CompleteStr, u32>,
+    map_res!(delimited!(char!('('), is_not!(")"), char!(')')), |CompleteStr(s)| u32::from_str_radix(s, 10))
 );
 
 named!(
-    children_parser<Vec<String>>,
-    separated_nonempty_list!(tag!(", "), name_parser) // map_res!(many0!(name: name_parser >> opt!(tag!(", "))), std::str::FromStr::from_str)
+    children_parser<CompleteStr, Vec<String>>,
+    separated_nonempty_list!(tag!(", "), name_parser)
 );
 
 named!(
-    line_parser<Line>,
+    line_parser<CompleteStr, Line>,
     do_parse!(
         name: name_parser
             >> tag!(" ")
@@ -53,64 +43,54 @@ named!(
 );
 
 pub fn answer1(input: &str) -> String {
-    let graph = parse_input(input);
+    let lines = parse_input(&input);
+    println!("{:?}", lines);
 
     String::from("")
 }
 
-fn parse_input(input: &str) -> Graph<(&str, u32), (&str, u32)> {
-    let mut graph = Graph::<(&str, u32), (&str, u32)>::new();
-
+fn parse_input(input: &str) -> Vec<Line> {
     let lines = input.split('\n');
-    for line in lines.filter(|l| *l != "") {
-        let line = line_parser(line.as_bytes());
-        println!("{:?}", line);
-        //dbg!(&children);
-    }
 
-    graph
-
-    // let pg = deps.add_node("petgraph");
-    // let fb = deps.add_node("fixedbitset");
-    // let qc = deps.add_node("quickcheck");
-    // let rand = deps.add_node("rand");
-    // let libc = deps.add_node("libc");
-    // deps.extend_with_edges(&[
-    //     (pg, fb), (pg, qc),
-    //     (qc, rand), (rand, libc), (qc, libc),
-    // ]);
+    lines
+        .filter(|l| *l != "")
+        .map(|l| line_parser(CompleteStr(l)).unwrap().1)
+        .collect()
 }
 
 #[test]
 fn parse_simple_name() {
-    assert_eq!(name_parser(b"pbga "), Ok((&b" "[..], "pbga".to_string())));
-    assert_eq!(name_parser(b"pbga\n"), Ok((&b"\n"[..], "pbga".to_string())));
+    assert_eq!(
+        name_parser(CompleteStr::from("pbga")),
+        Ok((CompleteStr::from(""), "pbga".to_string()))
+    );
 }
 
 #[test]
 fn parse_simple_weight() {
-    assert_eq!(weight_parser(b"(66) "), Ok((&b" "[..], 66)));
-    assert_eq!(weight_parser(b"(66)\n"), Ok((&b"\n"[..], 66)));
+    assert_eq!(
+        weight_parser(CompleteStr::from("(66)")),
+        Ok((CompleteStr::from(""), 66))
+    );
 }
 
 #[test]
 fn parse_simple_list() {
     assert_eq!(
-        children_parser(b"ktlj, cntj, xhth\n"),
-        Ok((&b"\n"[..], vec_of_strings!["ktlj", "cntj", "xhth"]))
-    );
-    assert_eq!(
-        children_parser(b"ktlj, cntj, xhth "),
-        Ok((&b" "[..], vec_of_strings!["ktlj", "cntj", "xhth"]))
+        children_parser(CompleteStr::from("ktlj, cntj, xhth")),
+        Ok((
+            CompleteStr::from(""),
+            vec_of_strings!["ktlj", "cntj", "xhth"]
+        ))
     );
 }
 
 #[test]
 fn parse_line_without_children() {
     assert_eq!(
-        line_parser(b"pbga (66)\n"),
+        line_parser(CompleteStr::from("pbga (66)")),
         Ok((
-            &b"\n"[..],
+            CompleteStr::from(""),
             Line {
                 name: "pbga".to_string(),
                 weight: 66,
@@ -123,9 +103,9 @@ fn parse_line_without_children() {
 #[test]
 fn parse_line_with_children() {
     assert_eq!(
-        line_parser(b"fwft (72) -> ktlj, cntj, xhth\n"),
+        line_parser(CompleteStr::from("fwft (72) -> ktlj, cntj, xhth")),
         Ok((
-            &b"\n"[..],
+            CompleteStr::from(""),
             Line {
                 name: "fwft".to_string(),
                 weight: 72,
