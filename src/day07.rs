@@ -1,4 +1,7 @@
 use nom::types::CompleteStr;
+use petgraph::graph::NodeIndex;
+use petgraph::{Direction, Graph};
+use std::collections::HashMap;
 
 pub fn title() -> &'static str {
     "Day 7: Recursive Circus"
@@ -44,9 +47,27 @@ named!(
 
 pub fn answer1(input: &str) -> String {
     let lines = parse_input(&input);
-    println!("{:?}", lines);
+    let mut graph = Graph::<String, String>::new();
 
-    String::from("")
+    // add all the nodes
+    let mut nodes: HashMap<String, NodeIndex> = HashMap::new();
+    for line in &lines {
+        let name = &line.name;
+        let node = graph.add_node(name.clone());
+        nodes.insert(name.clone(), node);
+    }
+
+    // add all the edges
+    for line in &lines {
+        if line.children.is_some() {
+            for child in &line.children.clone().unwrap() {
+                graph.update_edge(nodes[&line.name], nodes[child], "no_weight".to_string());
+            }
+        }
+    }
+
+    let source_node = graph.externals(Direction::Incoming).next();
+    graph[source_node.unwrap()].clone()
 }
 
 fn parse_input(input: &str) -> Vec<Line> {

@@ -6,6 +6,4 @@ edition = "2018"
 
 [dependencies]
 petgraph = "0.4"
-lazy_static = "1.2"
-regex = "1.1"
 nom = "4.2"
