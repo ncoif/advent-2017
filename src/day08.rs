@@ -67,7 +67,7 @@ named!(
 
 named!(
     val_parser<CompleteStr, i32>,
-    map_res!(nom::digit, |CompleteStr(s)| i32::from_str_radix(s, 10))
+    map_res!(recognize!(tuple!(opt!(char!('-')), nom::digit)), |CompleteStr(s)| i32::from_str_radix(s, 10))
 );
 
 named!(
