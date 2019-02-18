@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate nom;
-
-#[macro_use]
 pub mod common;
 pub mod day01;
 pub mod day02;

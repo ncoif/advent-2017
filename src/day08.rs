@@ -1,5 +1,5 @@
 use nom::types::CompleteStr;
-use std::collections::{HashMap, HashSet};
+use nom::{char, do_parse, map, map_res, named, opt, recognize, tag, take_until, tuple};
 use std::str::FromStr;
 
 pub fn title() -> &'static str {
@@ -107,6 +107,8 @@ named!(
 
 pub fn answer1(input: &str) -> i32 {
     let instructions = parse_input(&input);
+
+    dbg!(instructions);
 
     0
 }
