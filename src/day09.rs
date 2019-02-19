@@ -47,6 +47,11 @@ pub fn answer1(input: &str) -> u64 {
     scoring(&stream, 0, 0, false)
 }
 
+pub fn answer2(input: &str) -> u64 {
+    let stream = parse_input(&input);
+    count_garbage(&stream, 0, false)
+}
+
 fn parse_input(input: &str) -> Vec<Char> {
     stream_parser(CompleteStr(input)).unwrap().1
 }
@@ -64,6 +69,20 @@ fn scoring(stream: &[Char], depth: u64, score: u64, is_garbage: bool) -> u64 {
         (Some(Other), _) => scoring(&stream[1..], depth, score, is_garbage),
         (None, _) => score,
         (_, _) => scoring(&stream[1..], depth, score, is_garbage), //skip
+    }
+}
+
+fn count_garbage(stream: &[Char], count: u64, is_garbage: bool) -> u64 {
+    use self::Char::*;
+    let first_char = stream.get(0);
+
+    match (first_char, is_garbage) {
+        (Some(OpenGarbage), false) => count_garbage(&stream[1..], count, true),
+        (Some(CloseGarbage), true) => count_garbage(&stream[1..], count, false),
+        (Some(Negate), _) => count_garbage(&stream[2..], count, is_garbage),
+        (None, _) => count,
+        (_, true) => count_garbage(&stream[1..], count + 1, is_garbage), //skip
+        (_, false) => count_garbage(&stream[1..], count, is_garbage),    //skip
     }
 }
 
@@ -104,4 +123,15 @@ fn test_answer1() {
     assert_eq!(answer1("{{<ab>},{<ab>},{<ab>},{<ab>}}"), 9);
     assert_eq!(answer1("{{<!!>},{<!!>},{<!!>},{<!!>}}"), 9);
     assert_eq!(answer1("{{<a!>},{<a!>},{<a!>},{<ab>}}"), 3);
+}
+
+#[test]
+fn test_answer2() {
+    assert_eq!(answer2("<>"), 0);
+    assert_eq!(answer2("<random characters>"), 17);
+    assert_eq!(answer2("<<<<>"), 3);
+    assert_eq!(answer2("<{!>}>"), 2);
+    assert_eq!(answer2("<!!>"), 0);
+    assert_eq!(answer2("<!!!>>"), 0);
+    assert_eq!(answer2("<{oi!a,<{i<a>"), 9);
 }
