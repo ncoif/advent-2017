@@ -1,5 +1,6 @@
 use nom::types::CompleteStr;
 use nom::{char, do_parse, map, map_res, named, opt, recognize, tag, take_until, tuple};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub fn title() -> &'static str {
@@ -20,6 +21,15 @@ impl FromStr for Direction {
             "inc" => Ok(Direction::Inc),
             "dec" => Ok(Direction::Dec),
             _ => Err(()),
+        }
+    }
+}
+
+impl Direction {
+    fn apply(&self, reg: i32, val: i32) -> i32 {
+        match self {
+            Direction::Inc => reg + val,
+            Direction::Dec => reg - val,
         }
     }
 }
@@ -46,6 +56,19 @@ impl FromStr for Predicate {
             ">=" => Ok(Predicate::GreaterEq),
             "<=" => Ok(Predicate::SmallerEq),
             _ => Err(()),
+        }
+    }
+}
+
+impl Predicate {
+    fn validate(&self, reg: i32, val: i32) -> bool {
+        match self {
+            Predicate::Eq => reg == val,
+            Predicate::NotEq => reg != val,
+            Predicate::Greater => reg > val,
+            Predicate::Smaller => reg < val,
+            Predicate::GreaterEq => reg >= val,
+            Predicate::SmallerEq => reg <= val,
         }
     }
 }
@@ -108,9 +131,34 @@ named!(
 pub fn answer1(input: &str) -> i32 {
     let instructions = parse_input(&input);
 
-    dbg!(instructions);
+    // initialise all the registers
+    let mut registers: HashMap<String, i32> = HashMap::new();
+    for instruction in &instructions {
+        registers.insert(instruction.reg_inc.clone(), 0);
+        registers.insert(instruction.reg_pred.clone(), 0);
+    }
 
-    0
+    // run the program
+    for instruction in &instructions {
+        if instruction
+            .pred
+            .validate(registers[&instruction.reg_pred], instruction.pred_val)
+        {
+            registers.insert(
+                instruction.reg_inc.clone(),
+                instruction
+                    .inc
+                    .apply(registers[&instruction.reg_inc], instruction.inc_val),
+            );
+        }
+    }
+
+    // find the max value
+    registers
+        .iter()
+        .max_by_key(|(_k, v)| *v)
+        .map(|(_k, v)| *v)
+        .unwrap()
 }
 
 fn parse_input(input: &str) -> Vec<Instruction> {
@@ -153,4 +201,17 @@ fn parse_simple_instruction() {
             }
         ))
     );
+}
+
+#[test]
+fn test_answer1() {
+    let input = String::from(
+        r#"
+b inc 5 if a > 1
+a inc 1 if b < 5
+c dec -10 if a >= 1
+c inc -20 if c == 10"#,
+    );
+
+    assert_eq!(answer1(&input), 1);
 }
