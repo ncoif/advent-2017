@@ -42,14 +42,29 @@ named!(
     many0!(take1)
 );
 
-pub fn answer1(input: &str) -> i32 {
-    let instructions = parse_input(&input);
-
-    0
+pub fn answer1(input: &str) -> u64 {
+    let stream = parse_input(&input);
+    scoring(&stream, 0, 0, false)
 }
 
 fn parse_input(input: &str) -> Vec<Char> {
     stream_parser(CompleteStr(input)).unwrap().1
+}
+
+fn scoring(stream: &[Char], depth: u64, score: u64, is_garbage: bool) -> u64 {
+    use self::Char::*;
+    let first_char = stream.get(0);
+
+    match (first_char, is_garbage) {
+        (Some(OpenStream), false) => scoring(&stream[1..], depth + 1, score, is_garbage),
+        (Some(CloseStream), false) => scoring(&stream[1..], depth - 1, score + depth, is_garbage),
+        (Some(OpenGarbage), false) => scoring(&stream[1..], depth, score, true),
+        (Some(CloseGarbage), true) => scoring(&stream[1..], depth, score, false),
+        (Some(Negate), _) => scoring(&stream[2..], depth, score, is_garbage),
+        (Some(Other), _) => scoring(&stream[1..], depth, score, is_garbage),
+        (None, _) => score,
+        (_, _) => scoring(&stream[1..], depth, score, is_garbage), //skip
+    }
 }
 
 #[test]
@@ -77,4 +92,16 @@ fn parse_stream() {
             ]
         ))
     );
+}
+
+#[test]
+fn test_answer1() {
+    assert_eq!(answer1("{}"), 1);
+    assert_eq!(answer1("{{{}}}"), 6);
+    assert_eq!(answer1("{{},{}}"), 5);
+    assert_eq!(answer1("{{{},{},{{}}}}"), 16);
+    assert_eq!(answer1("{<a>,<a>,<a>,<a>}"), 1);
+    assert_eq!(answer1("{{<ab>},{<ab>},{<ab>},{<ab>}}"), 9);
+    assert_eq!(answer1("{{<!!>},{<!!>},{<!!>},{<!!>}}"), 9);
+    assert_eq!(answer1("{{<a!>},{<a!>},{<a!>},{<ab>}}"), 3);
 }
