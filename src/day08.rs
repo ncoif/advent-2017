@@ -161,6 +161,37 @@ pub fn answer1(input: &str) -> i32 {
         .unwrap()
 }
 
+pub fn answer2(input: &str) -> i32 {
+    let instructions = parse_input(&input);
+
+    // initialise all the registers
+    let mut registers: HashMap<String, i32> = HashMap::new();
+    for instruction in &instructions {
+        registers.insert(instruction.reg_inc.clone(), 0);
+        registers.insert(instruction.reg_pred.clone(), 0);
+    }
+
+    // run the program
+    let mut max = 0;
+    for instruction in &instructions {
+        if instruction
+            .pred
+            .validate(registers[&instruction.reg_pred], instruction.pred_val)
+        {
+            let apply = instruction
+                .inc
+                .apply(registers[&instruction.reg_inc], instruction.inc_val);
+            registers.insert(instruction.reg_inc.clone(), apply);
+            if max < apply {
+                max = apply;
+            }
+        }
+    }
+
+    // find the max value
+    max
+}
+
 fn parse_input(input: &str) -> Vec<Instruction> {
     let lines = input.split('\n');
 
@@ -214,4 +245,17 @@ c inc -20 if c == 10"#,
     );
 
     assert_eq!(answer1(&input), 1);
+}
+
+#[test]
+fn test_answer2() {
+    let input = String::from(
+        r#"
+b inc 5 if a > 1
+a inc 1 if b < 5
+c dec -10 if a >= 1
+c inc -20 if c == 10"#,
+    );
+
+    assert_eq!(answer2(&input), 10);
 }
