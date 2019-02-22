@@ -18,53 +18,69 @@ named!(
 #[derive(Debug, PartialEq)]
 struct Hash {
     list: Vec<(usize, usize)>, // (prev, next)
-    list_size: usize,
-    list_start: usize,
+    list_size: usize,          // the size of the list, invariant
+    list_start: usize, // the value of the first element of the list (which is also it's index)
     current_position: usize,
-    skip_size: usize,
+    skip_size: usize, // increment by 1 for everty .next()
 }
 
 impl Hash {
-    fn next(&mut self, next_length: usize) {
-        dbg!("start_next");
-
-        let first = self.list[self.list_start].0;
-        let mut last = self.list[self.list_start].1;
-        for _ in 1..next_length {
-            last = self.list[last].1
-        }
-        dbg!((first, last));
-
-        // reverse the sub-list
+    fn first_index(&self) -> usize {
         let mut cur_idx = self.list_start;
+        for _ in 1..=self.current_position {
+            cur_idx = self.list[cur_idx].1;
+        }
+        cur_idx
+    }
+
+    fn last_index(&self, next_length: usize) -> usize {
+        let mut cur_idx = self.list_start;
+        for _ in 1..self.current_position + next_length {
+            cur_idx = self.list[cur_idx].1;
+        }
+        cur_idx
+    }
+
+    fn next(&mut self, next_length: usize) {
+        println!("start_next: list: {:?}", &self.list);
+
+        let first = self.list[self.first_index()];
+        let last = self.list[self.last_index(next_length)];
+        // self.list_start = self.last_index(next_length);
+        dbg!((
+            self.first_index(),
+            &first,
+            self.last_index(next_length),
+            &last
+        ));
+        println!("list: {:?}", &self.list);
+
+        // reverse the list
+        let mut cur_idx = self.first_index();
         for idx in 0..next_length {
             let cur = self.list[cur_idx];
-            // dbg!(&cur);
-            // dbg!(&self.list);
-
             if idx == 0 {
-                // if first element, also update the edge
-                self.list[cur_idx].1 = last;
+                // if first update, reverse and update the edge
+                self.list[cur_idx].1 = last.1;
                 self.list[cur_idx].0 = cur.1;
-                self.list[last].0 = cur_idx;
-                dbg!(("first", &cur, "cur_idx", cur_idx));
+                self.list[last.1].0 = cur_idx;
             } else if idx == next_length - 1 {
-                // if last element, also update the edge
+                // if last update, reverse and update the edge and the start of the list
                 self.list[cur_idx].1 = cur.0;
-                self.list[cur_idx].0 = first;
-                self.list[first].1 = cur_idx;
-                self.list_start = cur_idx + self.skip_size;
-                dbg!(("last", &cur, "cur_idx", cur_idx));
+                self.list[cur_idx].0 = first.0;
+                self.list[first.0].1 = cur_idx;
+                self.list_start = cur_idx; // the list now start at the last index
             } else {
                 self.list[cur_idx].1 = cur.0;
                 self.list[cur_idx].0 = cur.1;
             }
-
             cur_idx = cur.1;
+            println!("list: {:?}, modified {:?}", &self.list, cur_idx);
         }
 
         // and adjust the counters
-        self.current_position = (self.current_position + next_length + self.skip_size) % self.list_size;
+        self.current_position =
+            (self.current_position + next_length + self.skip_size) % self.list_size;
         self.skip_size += 1;
     }
 }
@@ -74,7 +90,7 @@ pub fn answer1(size: usize, input: &str) -> usize {
 
     let list = (0..size)
         .map(|idx| {
-            let prev = (size + idx -1) % size;
+            let prev = (size + idx - 1) % size;
             let next = (idx + 1) % size;
             (prev, next)
         })
@@ -145,28 +161,19 @@ fn test_next() {
     };
     init.next(1);
     assert_eq!(init, expected);
-
-    let expected = Hash {
-        list: vec![(1,3),(2,0),(4,1),(0,4),(3,2)],
-        list_size: 5,
-        list_start: 3,
-        current_position: 1,
-        skip_size: 3,
-    };
-
 }
 
 #[test]
 fn test_next_length_list_size() {
     let mut init = Hash {
-        list: vec![(3,1),(0,2),(1,4),(4,0),(2,3)],
+        list: vec![(3, 1), (0, 2), (1, 4), (4, 0), (2, 3)],
         list_size: 5,
         list_start: 4,
-        current_position: 2,
+        current_position: 1,
         skip_size: 3,
     };
     let expected = Hash {
-        list: vec![(1,3),(2,0),(4,1),(0,4),(3,2)],
+        list: vec![(1, 3), (2, 0), (4, 1), (0, 4), (3, 2)],
         list_size: 5,
         list_start: 3,
         current_position: 4,
