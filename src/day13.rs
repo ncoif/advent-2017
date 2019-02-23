@@ -38,7 +38,7 @@ struct Firewall {
     depth: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct State {
     positions: Vec<(bool, u32)>, // (direction, position)
     sizes: Vec<u32>,
@@ -89,27 +89,6 @@ impl State {
     }
 }
 
-fn run_with_delay(firewalls: &[Firewall], delay: u32) -> bool {
-    if delay % 1000 == 0 {
-        dbg!(delay);
-    }
-
-    let mut state = State::new(&firewalls);
-
-    // wait delay
-    (0..delay).for_each(|_| state.next());
-
-    let mut is_caught = false;
-    (0..=state.max_layer).for_each(|layer_pos| {
-        if state.is_caught(layer_pos) {
-            is_caught = true;
-        }
-        state.next();
-    });
-
-    is_caught
-}
-
 pub fn answer1(input: &str) -> u32 {
     let firewalls = parse_input(&input);
     let mut state = State::new(&firewalls);
@@ -127,12 +106,25 @@ pub fn answer1(input: &str) -> u32 {
 
 pub fn answer2(input: &str) -> u32 {
     let firewalls = parse_input(&input);
+    let mut state = State::new(&firewalls);
 
     let mut delay = 0;
-    let mut is_caught = run_with_delay(&firewalls, delay);
+    let mut state_before_delay;
+    let mut is_caught = true;
+
     while is_caught {
         delay += 1;
-        is_caught = run_with_delay(&firewalls, delay);
+        state.next();
+        is_caught = false;
+        state_before_delay = state.clone();
+        (0..=state.max_layer).for_each(|layer_pos| {
+            if state.is_caught(layer_pos) {
+                is_caught = true;
+            }
+            state.next();
+        });
+
+        state = state_before_delay;
     }
 
     delay
