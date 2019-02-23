@@ -1,4 +1,3 @@
-use maplit::hashset;
 use nom::types::CompleteStr;
 use nom::{do_parse, map_res, named, separated_nonempty_list, tag};
 use std::collections::HashSet;
@@ -25,7 +24,7 @@ named!(
             >> target: target_parser
             >> (Pipe {
                 source: source,
-                target: target.into_iter().collect()
+                target: target
             })
     )
 );
@@ -42,13 +41,35 @@ fn parse_input(input: &str) -> Vec<Pipe> {
 #[derive(Debug, PartialEq)]
 struct Pipe {
     source: u32,
-    target: HashSet<u32>,
+    target: Vec<u32>,
 }
 
-pub fn answer1(input: &str) -> i32 {
+fn neighbours(pipes: &[Pipe]) -> Vec<Vec<u32>> {
+    let mut neighbours = vec![vec![]];
+    for pipe in pipes {
+        let mut ns: HashSet<u32> = pipe.target.clone().drain(..).collect(); // dedup
+        ns.insert(pipe.source);
+        neighbours.push(ns.into_iter().collect());
+    }
+
+    neighbours
+}
+
+pub fn answer1(input: &str) -> usize {
     let pipes = parse_input(&input);
-    dbg!(&pipes);
-    0
+    let neighbours = neighbours(&pipes);
+
+    // https://docs.rs/pathfinding/1.1.10/pathfinding/undirected/connected_components/fn.components.html
+    let groups = pathfinding::undirected::connected_components::components(&neighbours);
+
+    // find the group which contains 0, and return it's size
+    for group in groups {
+        if group.contains(&0) {
+            return group.len();
+        }
+    }
+
+    unreachable!();
 }
 
 #[test]
@@ -63,12 +84,12 @@ fn test_parse_input() {
         parse_input(&input),
         vec![
             Pipe {
-                source: 1,
-                target: hashset!(2)
+                source: 0,
+                target: vec![2]
             },
             Pipe {
                 source: 2,
-                target: hashset!(0, 3, 4)
+                target: vec![0, 3, 4]
             }
         ]
     );
