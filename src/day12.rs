@@ -72,6 +72,16 @@ pub fn answer1(input: &str) -> usize {
     unreachable!();
 }
 
+pub fn answer2(input: &str) -> usize {
+    let pipes = parse_input(&input);
+    let neighbours = neighbours(&pipes);
+
+    // https://docs.rs/pathfinding/1.1.10/pathfinding/undirected/connected_components/fn.components.html
+    let groups = pathfinding::undirected::connected_components::components(&neighbours);
+
+    groups.len()
+}
+
 #[test]
 fn test_parse_input() {
     let input = String::from(
@@ -109,4 +119,20 @@ fn test_answer1() {
     );
 
     assert_eq!(answer1(&input), 6);
+}
+
+#[test]
+fn test_answer2() {
+    let input = String::from(
+        r#"
+0 <-> 2
+1 <-> 1
+2 <-> 0, 3, 4
+3 <-> 2, 4
+4 <-> 2, 3, 6
+5 <-> 6
+6 <-> 4, 5"#,
+    );
+
+    assert_eq!(answer2(&input), 2);
 }
