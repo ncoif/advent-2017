@@ -56,4 +56,9 @@ fn main() {
         day10::title(),
         day10::answer1(256, &input10)
     );
+    println!(
+        "{} (2/2): {}",
+        day10::title(),
+        day10::answer2(256, &input10)
+    );
 }
