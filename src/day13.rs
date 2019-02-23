@@ -1,5 +1,6 @@
 use nom::types::CompleteStr;
 use nom::{do_parse, map_res, named, tag};
+use std::collections::HashMap;
 
 pub fn title() -> &'static str {
     "Day 13: Packet Scanners"
@@ -106,28 +107,24 @@ pub fn answer1(input: &str) -> u32 {
 
 pub fn answer2(input: &str) -> u32 {
     let firewalls = parse_input(&input);
-    let mut state = State::new(&firewalls);
+    let firewalls: HashMap<u32, u32> = firewalls.iter().map(|f| (f.layer, f.depth)).collect();
 
-    let mut delay = 0;
-    let mut state_before_delay;
-    let mut is_caught = true;
-
-    while is_caught {
-        delay += 1;
-        state.next();
-        is_caught = false;
-        state_before_delay = state.clone();
-        (0..=state.max_layer).for_each(|layer_pos| {
-            if state.is_caught(layer_pos) {
-                is_caught = true;
+    // no need for the expansive state structure and no need to compute the back-and-forth
+    // we can compute the effective position of the scanner if it was always going straight
+    // and compare it to the effective position of the packet if it was always going straight
+    (0..)
+        .filter(|delay| {
+            for (layer, depth) in firewalls.iter() {
+                let position = layer + delay;
+                let scanner_position = 2 * depth - 2;
+                if position % scanner_position == 0 {
+                    return false;
+                }
             }
-            state.next();
-        });
-
-        state = state_before_delay;
-    }
-
-    delay
+            true
+        })
+        .next()
+        .unwrap()
 }
 
 #[test]
