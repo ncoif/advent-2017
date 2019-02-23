@@ -1,6 +1,6 @@
-// use self::Hex::*;
 use nom::types::CompleteStr;
 use nom::{map_res, named, separated_nonempty_list, tag};
+use std::cmp::max;
 use std::str::FromStr;
 
 pub fn title() -> &'static str {
@@ -95,6 +95,19 @@ pub fn answer1(input: &str) -> i32 {
     }
 
     cur_coords.distance_from_center()
+}
+
+pub fn answer2(input: &str) -> i32 {
+    let hexes = parse_input(input);
+
+    let mut cur_coords = CubeCoords { x: 0, y: 0, z: 0 };
+    let mut max_distance = 0;
+    for hex in hexes {
+        cur_coords.move_hex(hex);
+        max_distance = max(cur_coords.distance_from_center(), max_distance);
+    }
+
+    max_distance
 }
 
 fn parse_input(input: &str) -> Vec<Hex> {
