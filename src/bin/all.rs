@@ -54,6 +54,6 @@ fn main() {
     println!(
         "{} (1/2): {}",
         day10::title(),
-        day10::answer1(255, &input10)
+        day10::answer1(256, &input10)
     );
 }
