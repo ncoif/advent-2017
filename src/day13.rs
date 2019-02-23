@@ -38,35 +38,55 @@ struct Firewall {
     depth: u32,
 }
 
-fn max_layer(firewalls: &[Firewall]) -> usize {
-    // quick and dirty, assuming the layer are sorted in the input
-    firewalls.last().unwrap().layer as usize
+#[derive(Debug, PartialEq)]
+struct State {
+    positions: Vec<(bool, u32)>, // (direction, position)
+    sizes: Vec<u32>,
+    max_layer: usize,
 }
 
-fn move_security_positions(
-    layer_security_position: &mut [(bool, u32)],
-    layer_size: &[u32],
-    max_layer: usize,
-) {
-    (0..=max_layer)
-        .filter(|&layer| layer_size[layer] > 0)
-        .for_each(|layer| {
-            // do I need to change the direction?
-            if layer_security_position[layer].0
-                && layer_security_position[layer].1 == layer_size[layer] - 1
-            {
-                layer_security_position[layer].0 = false;
-            } else if !layer_security_position[layer].0 && layer_security_position[layer].1 == 0 {
-                layer_security_position[layer].0 = true;
-            }
+impl State {
+    fn new(firewalls: &[Firewall]) -> Self {
+        let max_layer = firewalls.last().unwrap().layer as usize;
+        let mut layer_size: Vec<u32> = vec![0; max_layer + 1];
+        for firewall in firewalls.iter() {
+            layer_size[firewall.layer as usize] = firewall.depth;
+        }
 
-            // move the security positions in the correct direction
-            if layer_security_position[layer].0 {
-                layer_security_position[layer].1 += 1;
-            } else {
-                layer_security_position[layer].1 -= 1;
+        State {
+            positions: vec![(true, 0); max_layer + 1],
+            sizes: layer_size,
+            max_layer,
+        }
+    }
+
+    fn next(&mut self) {
+        (0..=self.max_layer).for_each(|layer| {
+            if self.sizes[layer] > 0 {
+                // do I need to change the direction?
+                if self.positions[layer].0 && self.positions[layer].1 == self.sizes[layer] - 1 {
+                    self.positions[layer].0 = false;
+                } else if !self.positions[layer].0 && self.positions[layer].1 == 0 {
+                    self.positions[layer].0 = true;
+                }
+
+                // move the security positions in the correct direction
+                if self.positions[layer].0 {
+                    self.positions[layer].1 += 1;
+                } else {
+                    self.positions[layer].1 -= 1;
+                }
             }
         });
+    }
+
+    fn is_caught(&self, layer: usize) -> bool {
+        self.sizes[layer] != 0 && self.positions[layer].1 == 0
+    }
+
+    fn layer_cost(&self, layer: usize) -> u32 {
+        layer as u32 * self.sizes[layer]
+    }
 }
 
 fn run_with_delay(firewalls: &[Firewall], delay: u32) -> bool {
@@ -74,29 +94,17 @@ fn run_with_delay(firewalls: &[Firewall], delay: u32) -> bool {
         dbg!(delay);
     }
 
-    let max_layer = max_layer(&firewalls);
-
-    let mut layer_size: Vec<u32> = vec![0; max_layer + 1];
-    let mut layer_security_position: Vec<(bool, u32)> = vec![(true, 0); max_layer + 1]; // (direction, position)
-    for firewall in firewalls.iter() {
-        layer_size[firewall.layer as usize] = firewall.depth;
-    }
+    let mut state = State::new(&firewalls);
 
     // wait delay
-    (0..delay).for_each(|_delay| {
-        // move the security positions
-        move_security_positions(&mut layer_security_position, &layer_size, max_layer);
-    });
+    (0..delay).for_each(|_| state.next());
 
     let mut is_caught = false;
-    (0..=max_layer).for_each(|layer_pos| {
-        // check if I'm caught
-        if layer_security_position[layer_pos].1 == 0 && layer_size[layer_pos] != 0 {
+    (0..=state.max_layer).for_each(|layer_pos| {
+        if state.is_caught(layer_pos) {
             is_caught = true;
         }
-
-        // move the security positions
-        move_security_positions(&mut layer_security_position, &layer_size, max_layer);
+        state.next();
     });
 
     is_caught
@@ -104,23 +112,14 @@ fn run_with_delay(firewalls: &[Firewall], delay: u32) -> bool {
 
 pub fn answer1(input: &str) -> u32 {
     let firewalls = parse_input(&input);
-    let max_layer = max_layer(&firewalls);
-
-    let mut layer_size: Vec<u32> = vec![0; max_layer + 1];
-    let mut layer_security_position: Vec<(bool, u32)> = vec![(true, 0); max_layer + 1]; // (direction, position)
-    for firewall in firewalls.iter() {
-        layer_size[firewall.layer as usize] = firewall.depth;
-    }
+    let mut state = State::new(&firewalls);
 
     let mut severity = 0;
-    (0..=max_layer).for_each(|layer_pos| {
-        // check if I'm caught
-        if layer_security_position[layer_pos].1 == 0 && layer_size[layer_pos] != 0 {
-            severity += layer_pos as u32 * layer_size[layer_pos]; // caught
+    (0..=state.max_layer).for_each(|layer_pos| {
+        if state.is_caught(layer_pos) {
+            severity += state.layer_cost(layer_pos);
         }
-
-        // move the security positions
-        move_security_positions(&mut layer_security_position, &layer_size, max_layer);
+        state.next();
     });
 
     severity
