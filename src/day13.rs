@@ -39,69 +39,19 @@ struct Firewall {
     depth: u32,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct State {
-    positions: Vec<(bool, u32)>, // (direction, position)
-    sizes: Vec<u32>,
-    max_layer: usize,
-}
-
-impl State {
-    fn new(firewalls: &[Firewall]) -> Self {
-        let max_layer = firewalls.last().unwrap().layer as usize;
-        let mut layer_size: Vec<u32> = vec![0; max_layer + 1];
-        for firewall in firewalls.iter() {
-            layer_size[firewall.layer as usize] = firewall.depth;
-        }
-
-        State {
-            positions: vec![(true, 0); max_layer + 1],
-            sizes: layer_size,
-            max_layer,
-        }
-    }
-
-    fn next(&mut self) {
-        (0..=self.max_layer).for_each(|layer| {
-            if self.sizes[layer] > 0 {
-                // do I need to change the direction?
-                if self.positions[layer].0 && self.positions[layer].1 == self.sizes[layer] - 1 {
-                    self.positions[layer].0 = false;
-                } else if !self.positions[layer].0 && self.positions[layer].1 == 0 {
-                    self.positions[layer].0 = true;
-                }
-
-                // move the security positions in the correct direction
-                if self.positions[layer].0 {
-                    self.positions[layer].1 += 1;
-                } else {
-                    self.positions[layer].1 -= 1;
-                }
-            }
-        });
-    }
-
-    fn is_caught(&self, layer: usize) -> bool {
-        self.sizes[layer] != 0 && self.positions[layer].1 == 0
-    }
-
-    fn layer_cost(&self, layer: usize) -> u32 {
-        layer as u32 * self.sizes[layer]
-    }
-}
-
 pub fn answer1(input: &str) -> u32 {
     let firewalls = parse_input(&input);
-    let mut state = State::new(&firewalls);
+
+    let firewalls: HashMap<u32, u32> = firewalls.iter().map(|f| (f.layer, f.depth)).collect();
 
     let mut severity = 0;
-    (0..=state.max_layer).for_each(|layer_pos| {
-        if state.is_caught(layer_pos) {
-            severity += state.layer_cost(layer_pos);
-        }
-        state.next();
-    });
 
+    for (layer, depth) in firewalls.iter() {
+        let scanner_position = 2 * depth - 2;
+        if layer % scanner_position == 0 {
+            severity += layer * depth;
+        }
+    }
     severity
 }
 
@@ -113,7 +63,7 @@ pub fn answer2(input: &str) -> u32 {
     // we can compute the effective position of the scanner if it was always going straight
     // and compare it to the effective position of the packet if it was always going straight
     (0..)
-        .filter(|delay| {
+        .find(|delay| {
             for (layer, depth) in firewalls.iter() {
                 let position = layer + delay;
                 let scanner_position = 2 * depth - 2;
@@ -123,7 +73,6 @@ pub fn answer2(input: &str) -> u32 {
             }
             true
         })
-        .next()
         .unwrap()
 }
 
