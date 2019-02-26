@@ -73,7 +73,7 @@ pub fn answer1(size: usize, input: &str) -> usize {
     hash.list[0] * hash.list[1]
 }
 
-pub fn answer2(size: usize, input: &str) -> String {
+pub fn hash(input: &str) -> String {
     let mut lengths = input
         .trim()
         .chars()
@@ -83,7 +83,7 @@ pub fn answer2(size: usize, input: &str) -> String {
     lengths.extend(&[17, 31, 73, 47, 23]);
 
     let mut hash = Hash {
-        list: (0..size).collect(),
+        list: (0..256).collect(),
         current_position: 0,
         skip_size: 0,
     };
@@ -95,6 +95,10 @@ pub fn answer2(size: usize, input: &str) -> String {
     }
 
     hash.dense_hash()
+}
+
+pub fn answer2(input: &str) -> String {
+    hash(input)
 }
 
 fn parse_input(input: &str) -> Vec<usize> {
@@ -147,19 +151,19 @@ fn test_answer1() {
 #[test]
 fn test_answer2() {
     assert_eq!(
-        answer2(256, &"".to_string()),
+        answer2(&"".to_string()),
         "a2582a3a0e66e6e86e3812dcb672a272".to_string()
     );
     assert_eq!(
-        answer2(256, &"AoC 2017".to_string()),
+        answer2(&"AoC 2017".to_string()),
         "33efeb34ea91902bb2f59c9920caa6cd".to_string()
     );
     assert_eq!(
-        answer2(256, &"1,2,3".to_string()),
+        answer2(&"1,2,3".to_string()),
         "3efbe78a8d82f29979031a4aa0b16a9d".to_string()
     );
     assert_eq!(
-        answer2(256, &"1,2,4".to_string()),
+        answer2(&"1,2,4".to_string()),
         "63960835bcdc130f0b66d7ff4f6a5a8e".to_string()
     );
 }
