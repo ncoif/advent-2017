@@ -80,4 +80,5 @@ fn main() {
     println!("{} (2/2): {}", day14::title(), day14::answer2(&input14));
 
     println!("{} (1/2): {}", day15::title(), day15::answer1(679, 771));
+    println!("{} (2/2): {}", day15::title(), day15::answer2(679, 771));
 }
