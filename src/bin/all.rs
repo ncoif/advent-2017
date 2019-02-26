@@ -76,4 +76,5 @@ fn main() {
 
     let input14 = String::from("hxtvlmkl");
     println!("{} (1/2): {}", day14::title(), day14::answer1(&input14));
+    println!("{} (2/2): {}", day14::title(), day14::answer2(&input14));
 }
