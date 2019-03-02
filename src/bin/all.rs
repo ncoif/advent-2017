@@ -13,6 +13,7 @@ use aoc::day12;
 use aoc::day13;
 use aoc::day14;
 use aoc::day15;
+use aoc::day16;
 
 fn read_file(day: u32) -> String {
     let filename = format!("input/input{:02}.txt", day);
@@ -81,4 +82,7 @@ fn main() {
 
     println!("{} (1/2): {}", day15::title(), day15::answer1(679, 771));
     println!("{} (2/2): {}", day15::title(), day15::answer2(679, 771));
+
+    let input16 = read_file(16);
+    println!("{} (1/2): {}", day16::title(), day16::answer1(&input16, 15));
 }
