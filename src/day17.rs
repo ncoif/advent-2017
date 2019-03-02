@@ -2,54 +2,35 @@ pub fn title() -> &'static str {
     "Day 17: Spinlock"
 }
 
-pub fn answer1(input: usize) -> usize {
-    // the index of the vector is the value number, which contains a tuple (cw, ccw) to link to left and right
-    let mut values: Vec<(usize, usize)> = Vec::with_capacity(2017);
-    values.push((0, 0));
-    let mut current = 0;
+fn iterate(iterations: usize, input: usize) -> Vec<usize> {
+    let mut values: Vec<usize> = Vec::with_capacity(iterations);
+    values.push(0);
 
-    for i in 1..=2017 {
-        // follow 3 jumps
+    for i in 1..=iterations {
+        let mut current = i - 1;
+        // follow input jumps
         for _ in 1..=input {
-            current = values[current].1;
+            current = values[current];
         }
 
         // insert the value
-        let (_left, right) = values[current];
-        values.push((current, right));
+        values.push(values[current]);
 
         // and update pointers for the neightbours
-        values[current].1 = i;
-        values[right].0 = i;
-        current = i;
+        values[current] = i;
     }
 
-    values[current].1
+    values
+}
+
+pub fn answer1(input: usize) -> usize {
+    let values = iterate(2017, input);
+    values[2017]
 }
 
 pub fn answer2(input: usize) -> usize {
-    // the index of the vector is the value number, which contains a tuple (cw, ccw) to link to left and right
-    let mut values: Vec<(usize, usize)> = Vec::with_capacity(50_000_000);
-    values.push((0, 0));
-    let mut current = 0;
-
-    for i in 1..=50_000_000 {
-        // follow 3 jumps
-        for _ in 1..=input {
-            current = values[current].1;
-        }
-
-        // insert the value
-        let (_left, right) = values[current];
-        values.push((current, right));
-
-        // and update pointers for the neightbours
-        values[current].1 = i;
-        values[right].0 = i;
-        current = i;
-    }
-
-    values[0].1
+    let values = iterate(50_000_000, input);
+    values[0]
 }
 
 #[test]
