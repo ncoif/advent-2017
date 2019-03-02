@@ -85,4 +85,5 @@ fn main() {
 
     let input16 = read_file(16);
     println!("{} (1/2): {}", day16::title(), day16::answer1(&input16, 16));
+    println!("{} (2/2): {}", day16::title(), day16::answer2(&input16, 16));
 }

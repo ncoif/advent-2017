@@ -72,11 +72,29 @@ impl Dance {
 pub fn answer1(input: &str, size: usize) -> String {
     let dances = parse_input(&input);
     let mut programs = vec_chars(size);
-
-    for dance in dances {
-        dance.apply(&mut programs);
-    }
+    dances.iter().for_each(|d| d.apply(&mut programs));
     programs.iter().collect()
+}
+
+pub fn answer2(input: &str, size: usize) -> String {
+    let dances = parse_input(&input);
+    let mut programs = vec_chars(size);
+
+    let mut seen: Vec<Vec<char>> = vec![];
+
+    let mut count = 0;
+    let remaining_dances = loop {
+        dances.iter().for_each(|d| d.apply(&mut programs));
+        let already_seen = seen.iter().position(|p| *p == programs);
+
+        if already_seen.is_none() {
+            count += 1;
+            seen.push(programs.clone());
+        } else {
+            break 1_000_000_000 % count;
+        }
+    };
+    seen[remaining_dances - 1].iter().collect()
 }
 
 fn parse_input(input: &str) -> Vec<Dance> {
@@ -114,4 +132,10 @@ fn test_vec_chars() {
 #[test]
 fn test_answer1() {
     assert_eq!(answer1("s1,x3/4,pe/b", 5), "baedc");
+}
+
+#[test]
+fn test_answer2() {
+    let input16 = std::fs::read_to_string("input/input16.txt").unwrap();
+    assert_eq!(answer2(&input16, 16), "ejkflpgnamhdcboi");
 }
