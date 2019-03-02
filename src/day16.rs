@@ -1,3 +1,4 @@
+use std::mem;
 use std::str::FromStr;
 
 pub fn title() -> &'static str {
@@ -47,12 +48,35 @@ impl Dance {
         let p2 = parse.next().unwrap();
         Dance::Partner(p1.as_bytes()[0] as char, p2.as_bytes()[0] as char)
     }
+
+    fn apply(&self, programs: &mut Vec<char>) {
+        match self {
+            Dance::Spin(idx) => {
+                let (start, end) = programs.split_at(programs.len() - *idx);
+                let mut new = end.to_vec();
+                new.extend_from_slice(start);
+                mem::replace(programs, new);
+            }
+            Dance::Exchange(idx1, idx2) => {
+                programs.swap(*idx1, *idx2);
+            }
+            Dance::Partner(p1, p2) => {
+                let idx1 = programs.iter().position(|c| c == p1).unwrap();
+                let idx2 = programs.iter().position(|c| c == p2).unwrap();
+                programs.swap(idx1, idx2);
+            }
+        }
+    }
 }
 
 pub fn answer1(input: &str, size: usize) -> String {
     let dances = parse_input(&input);
-    dbg!(&dances);
-    "".to_string()
+    let mut programs = vec_chars(size);
+
+    for dance in dances {
+        dance.apply(&mut programs);
+    }
+    programs.iter().collect()
 }
 
 fn parse_input(input: &str) -> Vec<Dance> {
@@ -61,6 +85,13 @@ fn parse_input(input: &str) -> Vec<Dance> {
     let moves = line.split(',');
 
     moves.map(|m| Dance::from_str(m).unwrap()).collect()
+}
+
+fn vec_chars(size: usize) -> Vec<char> {
+    (0..size)
+        .map(|idx| b'a' + idx as u8)
+        .map(|e| e as char)
+        .collect()
 }
 
 #[test]
@@ -73,6 +104,11 @@ fn test_parse_input() {
             Dance::Partner('e', 'b')
         ]
     );
+}
+
+#[test]
+fn test_vec_chars() {
+    assert_eq!(vec_chars(5), vec!['a', 'b', 'c', 'd', 'e']);
 }
 
 #[test]
