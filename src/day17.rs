@@ -29,8 +29,18 @@ pub fn answer1(input: usize) -> usize {
 }
 
 pub fn answer2(input: usize) -> usize {
-    let values = iterate(50_000_000, input);
-    values[0]
+    let mut buflen = 1;
+    let mut pos = 0;
+    let mut result = 0;
+
+    for i in 1..50_000_000 {
+        pos = (pos + input) % buflen + 1;
+        buflen += 1;
+        if pos == 1 {
+            result = i;
+        }
+    }
+    result
 }
 
 #[test]
