@@ -7,3 +7,7 @@ macro_rules! vec_of_strings {
         vec![$(String::from($str),)*] as Vec<String>
     });
 }
+
+pub fn to_char(s: &str) -> char {
+    s.as_bytes()[0] as char
+}
