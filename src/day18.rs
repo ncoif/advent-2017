@@ -217,10 +217,10 @@ pub fn answer2(input: &str) -> usize {
 
     let mut counter = 0;
     loop {
-        let done = program0.execute(&mut queue0, &mut queue1);
+        let done = program0.execute(&mut queue1, &mut queue0);
         let len_before = queue1.len();
 
-        let done = done || program1.execute(&mut queue1, &mut queue0);
+        let done = done || program1.execute(&mut queue0, &mut queue1);
 
         counter += queue1.len() - len_before;
         if done || queue1.is_empty() {
