@@ -34,32 +34,8 @@ impl FromStr for Register {
 }
 
 impl Register {
-    fn get(&self, s: &State) -> i64 {
-        if self.val.is_some() {
-            self.val.unwrap()
-        } else {
-            s.regs[&self.var.unwrap()]
-        }
-    }
-
     fn var(&self) -> char {
         self.var.unwrap()
-    }
-
-    fn initialize(&self, regs: &mut HashMap<char, i64>) {
-        if self.var.is_some() {
-            regs.insert(self.var.unwrap(), 0);
-        }
-    }
-
-    fn initialize2(&self, regs: &mut HashMap<char, i64>, id: i64) {
-        if self.var.is_some() {
-            regs.insert(self.var.unwrap(), 0);
-        }
-
-        if self.var == Some('p') {
-            regs.insert(self.var.unwrap(), id);
-        }
     }
 }
 
@@ -111,165 +87,148 @@ impl FromStr for Instruction {
     }
 }
 
-impl Instruction {
-    fn apply(&self, s: &mut State) -> Option<i64> {
-        match self {
-            Instruction::Send(rx) => {
-                s.last_freq = Some(rx.get(s));
-                s.cur += 1;
-                None
-            }
-            Instruction::Set(rx, ry) => {
-                s.regs.insert(rx.var(), ry.get(s));
-                s.cur += 1;
-                None
-            }
-            Instruction::Add(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) + ry.get(s));
-                s.cur += 1;
-                None
-            }
-            Instruction::Mul(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) * ry.get(s));
-                s.cur += 1;
-                None
-            }
-            Instruction::Mod(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) % ry.get(s));
-                s.cur += 1;
-                None
-            }
-            Instruction::Recover(rx) => {
-                s.cur += 1;
-                if rx.get(s) != 0 && s.last_freq.is_some() {
-                    Some(s.last_freq.unwrap())
-                } else {
-                    None
-                }
-            }
-            Instruction::Jump(rx, ry) => {
-                if rx.get(s) != 0 {
-                    s.cur += ry.get(s) as isize;
-                } else {
-                    s.cur += 1;
-                }
-                None
-            }
-        }
-    }
-
-    fn apply2(&self, s: &mut State, other: &mut State) {
-        match self {
-            Instruction::Send(rx) => {
-                other.queue.push_back(rx.get(s));
-                s.cur += 1;
-                s.send_counter += 1;
-            }
-            Instruction::Set(rx, ry) => {
-                s.regs.insert(rx.var(), ry.get(s));
-                s.cur += 1;
-            }
-            Instruction::Add(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) + ry.get(s));
-                s.cur += 1;
-            }
-            Instruction::Mul(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) * ry.get(s));
-                s.cur += 1;
-            }
-            Instruction::Mod(rx, ry) => {
-                s.regs.insert(rx.var(), rx.get(s) % ry.get(s));
-                s.cur += 1;
-            }
-            Instruction::Recover(rx) => match s.queue.pop_front() {
-                Some(val) => {
-                    s.waiting = false;
-                    s.regs.insert(rx.var(), val);
-                    s.cur += 1;
-                }
-                None => {
-                    s.waiting = true;
-                }
-            },
-            Instruction::Jump(rx, ry) => {
-                if rx.get(s) != 0 {
-                    s.cur += ry.get(s) as isize;
-                } else {
-                    s.cur += 1;
-                }
-            }
-        }
-    }
+#[derive(Debug)]
+struct Program<'a> {
+    regs: HashMap<char, i64>,
+    pc: i64,
+    instructions: &'a [Instruction],
 }
 
-#[derive(Debug)]
-struct State {
-    last_freq: Option<i64>,
-    regs: HashMap<char, i64>,
-    cur: isize,
-    id: i64,
-    queue: VecDeque<i64>,
-    waiting: bool,
-    send_counter: i64,
+impl<'a> Program<'a> {
+    fn new(instructions: &[Instruction], id: i64) -> Program {
+        Program {
+            regs: (97u8..123u8)
+                .map(|x| (x as char, if x == 112 { id } else { 0 }))
+                .collect(),
+            pc: 0,
+            instructions,
+        }
+    }
+
+    fn execute(&mut self, my_queue: &mut VecDeque<i64>, other_queue: &mut VecDeque<i64>) -> bool {
+        while let Some(instruction) = self.instructions.get(if self.pc < 0 {
+            usize::max_value()
+        } else {
+            self.pc as usize
+        }) {
+            self.pc += 1;
+            match instruction {
+                Instruction::Send(rx) => {
+                    other_queue.push_back(self.get(&rx));
+                }
+                Instruction::Set(rx, ry) => {
+                    self.regs.insert(rx.var(), self.get(&ry));
+                }
+                Instruction::Add(rx, ry) => {
+                    self.regs.insert(rx.var(), self.get(&rx) + self.get(&ry));
+                }
+                Instruction::Mul(rx, ry) => {
+                    self.regs.insert(rx.var(), self.get(&rx) * self.get(&ry));
+                }
+                Instruction::Mod(rx, ry) => {
+                    self.regs.insert(rx.var(), self.get(&rx) % self.get(&ry));
+                }
+                Instruction::Recover(rx) => match my_queue.pop_front() {
+                    Some(val) => {
+                        self.regs.insert(rx.var(), val);
+                    }
+                    None => {
+                        self.pc -= 1;
+                        return false;
+                    }
+                },
+                Instruction::Jump(rx, ry) => {
+                    if self.get(&rx) > 0 {
+                        self.pc += self.get(&ry) - 1;
+                    }
+                }
+            }
+        }
+        true
+    }
+
+    fn get(&self, r: &Register) -> i64 {
+        if r.val.is_some() {
+            r.val.unwrap()
+        } else {
+            self.regs[&r.var.unwrap()]
+        }
+    }
 }
 
 pub fn answer1(input: &str) -> i64 {
     let instructions = parse_input(input);
-    let registers = initialize(&instructions);
 
-    let mut state = State {
-        last_freq: None,
-        regs: registers,
-        cur: 0,
-        id: 0,
-        queue: VecDeque::new(),
-        waiting: false,
-        send_counter: 0,
-    };
+    let mut pc = 0;
+    let mut regs: HashMap<char, i64> = (97u8..123u8).map(|x| (x as char, 0)).collect();
+    let mut freq = 0;
 
-    let mut result = None;
-    while state.cur >= 0 && state.cur <= instructions.len() as isize && result.is_none() {
-        let instruction = &instructions[state.cur as usize];
-        result = instruction.apply(&mut state);
+    while let Some(instruction) = instructions.get(if pc < 0 {
+        usize::max_value()
+    } else {
+        pc as usize
+    }) {
+        pc += 1;
+        match instruction {
+            Instruction::Send(rx) => {
+                freq = get(&regs, rx);
+            }
+            Instruction::Set(rx, ry) => {
+                regs.insert(rx.var(), get(&regs, ry));
+            }
+            Instruction::Add(rx, ry) => {
+                regs.insert(rx.var(), get(&regs, rx) + get(&regs, ry));
+            }
+            Instruction::Mul(rx, ry) => {
+                regs.insert(rx.var(), get(&regs, rx) * get(&regs, ry));
+            }
+            Instruction::Mod(rx, ry) => {
+                regs.insert(rx.var(), get(&regs, rx) % get(&regs, ry));
+            }
+            Instruction::Recover(_rx) => {
+                return freq;
+            }
+            Instruction::Jump(rx, ry) => {
+                if get(&regs, rx) > 0 {
+                    pc += get(&regs, ry) - 1;
+                }
+            }
+        }
     }
 
-    result.unwrap()
+    freq
 }
 
-pub fn answer2(input: &str) -> i64 {
+fn get(regs: &HashMap<char, i64>, r: &Register) -> i64 {
+    if r.val.is_some() {
+        r.val.unwrap()
+    } else {
+        regs[&r.var.unwrap()]
+    }
+}
+
+pub fn answer2(input: &str) -> usize {
     let instructions = parse_input(input);
-    let registers0 = initialize2(&instructions, 0);
-    let registers1 = initialize2(&instructions, 1);
 
-    let mut state0 = State {
-        last_freq: None,
-        regs: registers0,
-        cur: 0,
-        id: 0,
-        queue: VecDeque::new(),
-        waiting: false,
-        send_counter: 0,
-    };
+    let mut program0 = Program::new(&instructions, 0);
+    let mut program1 = Program::new(&instructions, 1);
+    let mut queue0 = VecDeque::new();
+    let mut queue1 = VecDeque::new();
 
-    let mut state1 = State {
-        last_freq: None,
-        regs: registers1,
-        cur: 0,
-        id: 1,
-        queue: VecDeque::new(),
-        waiting: false,
-        send_counter: 0,
-    };
+    let mut counter = 0;
+    loop {
+        let done = program0.execute(&mut queue0, &mut queue1);
+        let len_before = queue1.len();
 
-    while !state0.waiting && !state1.waiting {
-        let instruction0 = &instructions[state0.cur as usize];
-        instruction0.apply2(&mut state0, &mut state1);
+        let done = done || program1.execute(&mut queue1, &mut queue0);
 
-        let instruction1 = &instructions[state1.cur as usize];
-        instruction1.apply2(&mut state1, &mut state0);
+        counter += queue1.len() - len_before;
+        if done || queue1.is_empty() {
+            break;
+        }
     }
 
-    state1.send_counter
+    counter
 }
 
 fn parse_input(input: &str) -> Vec<Instruction> {
@@ -280,76 +239,6 @@ fn parse_input(input: &str) -> Vec<Instruction> {
         .collect();
 
     instructions
-}
-
-fn initialize(instructions: &[Instruction]) -> HashMap<char, i64> {
-    let mut registers = HashMap::new();
-    for instruction in instructions {
-        match instruction {
-            Instruction::Send(rx) => {
-                rx.initialize(&mut registers);
-            }
-            Instruction::Set(rx, ry) => {
-                rx.initialize(&mut registers);
-                ry.initialize(&mut registers);
-            }
-            Instruction::Add(rx, ry) => {
-                rx.initialize(&mut registers);
-                ry.initialize(&mut registers);
-            }
-            Instruction::Mul(rx, ry) => {
-                rx.initialize(&mut registers);
-                ry.initialize(&mut registers);
-            }
-            Instruction::Mod(rx, ry) => {
-                rx.initialize(&mut registers);
-                ry.initialize(&mut registers);
-            }
-            Instruction::Recover(rx) => {
-                rx.initialize(&mut registers);
-            }
-            Instruction::Jump(rx, ry) => {
-                rx.initialize(&mut registers);
-                ry.initialize(&mut registers);
-            }
-        }
-    }
-    registers
-}
-
-fn initialize2(instructions: &[Instruction], id: i64) -> HashMap<char, i64> {
-    let mut registers = HashMap::new();
-    for instruction in instructions {
-        match instruction {
-            Instruction::Send(rx) => {
-                rx.initialize2(&mut registers, id);
-            }
-            Instruction::Set(rx, ry) => {
-                rx.initialize2(&mut registers, id);
-                ry.initialize2(&mut registers, id);
-            }
-            Instruction::Add(rx, ry) => {
-                rx.initialize2(&mut registers, id);
-                ry.initialize2(&mut registers, id);
-            }
-            Instruction::Mul(rx, ry) => {
-                rx.initialize2(&mut registers, id);
-                ry.initialize2(&mut registers, id);
-            }
-            Instruction::Mod(rx, ry) => {
-                rx.initialize2(&mut registers, id);
-                ry.initialize2(&mut registers, id);
-            }
-            Instruction::Recover(rx) => {
-                rx.initialize2(&mut registers, id);
-            }
-            Instruction::Jump(rx, ry) => {
-                rx.initialize2(&mut registers, id);
-                ry.initialize2(&mut registers, id);
-            }
-        }
-    }
-    registers
 }
 
 #[test]
