@@ -1,5 +1,5 @@
 use crate::common;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::str::FromStr;
 
 pub fn title() -> &'static str {
@@ -49,6 +49,16 @@ impl Register {
     fn initialize(&self, regs: &mut HashMap<char, i64>) {
         if self.var.is_some() {
             regs.insert(self.var.unwrap(), 0);
+        }
+    }
+
+    fn initialize2(&self, regs: &mut HashMap<char, i64>, id: i64) {
+        if self.var.is_some() {
+            regs.insert(self.var.unwrap(), 0);
+        }
+
+        if self.var == Some('p') {
+            regs.insert(self.var.unwrap(), id);
         }
     }
 }
@@ -147,6 +157,49 @@ impl Instruction {
             }
         }
     }
+
+    fn apply2(&self, s: &mut State, other: &mut State) {
+        match self {
+            Instruction::Send(rx) => {
+                other.queue.push_back(rx.get(s));
+                s.cur += 1;
+                s.send_counter += 1;
+            }
+            Instruction::Set(rx, ry) => {
+                s.regs.insert(rx.var(), ry.get(s));
+                s.cur += 1;
+            }
+            Instruction::Add(rx, ry) => {
+                s.regs.insert(rx.var(), rx.get(s) + ry.get(s));
+                s.cur += 1;
+            }
+            Instruction::Mul(rx, ry) => {
+                s.regs.insert(rx.var(), rx.get(s) * ry.get(s));
+                s.cur += 1;
+            }
+            Instruction::Mod(rx, ry) => {
+                s.regs.insert(rx.var(), rx.get(s) % ry.get(s));
+                s.cur += 1;
+            }
+            Instruction::Recover(rx) => match s.queue.pop_front() {
+                Some(val) => {
+                    s.waiting = false;
+                    s.regs.insert(rx.var(), val);
+                    s.cur += 1;
+                }
+                None => {
+                    s.waiting = true;
+                }
+            },
+            Instruction::Jump(rx, ry) => {
+                if rx.get(s) != 0 {
+                    s.cur += ry.get(s) as isize;
+                } else {
+                    s.cur += 1;
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -154,6 +207,10 @@ struct State {
     last_freq: Option<i64>,
     regs: HashMap<char, i64>,
     cur: isize,
+    id: i64,
+    queue: VecDeque<i64>,
+    waiting: bool,
+    send_counter: i64,
 }
 
 pub fn answer1(input: &str) -> i64 {
@@ -164,6 +221,10 @@ pub fn answer1(input: &str) -> i64 {
         last_freq: None,
         regs: registers,
         cur: 0,
+        id: 0,
+        queue: VecDeque::new(),
+        waiting: false,
+        send_counter: 0,
     };
 
     let mut result = None;
@@ -173,6 +234,42 @@ pub fn answer1(input: &str) -> i64 {
     }
 
     result.unwrap()
+}
+
+pub fn answer2(input: &str) -> i64 {
+    let instructions = parse_input(input);
+    let registers0 = initialize2(&instructions, 0);
+    let registers1 = initialize2(&instructions, 1);
+
+    let mut state0 = State {
+        last_freq: None,
+        regs: registers0,
+        cur: 0,
+        id: 0,
+        queue: VecDeque::new(),
+        waiting: false,
+        send_counter: 0,
+    };
+
+    let mut state1 = State {
+        last_freq: None,
+        regs: registers1,
+        cur: 0,
+        id: 1,
+        queue: VecDeque::new(),
+        waiting: false,
+        send_counter: 0,
+    };
+
+    while !state0.waiting && !state1.waiting {
+        let instruction0 = &instructions[state0.cur as usize];
+        instruction0.apply2(&mut state0, &mut state1);
+
+        let instruction1 = &instructions[state1.cur as usize];
+        instruction1.apply2(&mut state1, &mut state0);
+    }
+
+    state1.send_counter
 }
 
 fn parse_input(input: &str) -> Vec<Instruction> {
@@ -214,6 +311,41 @@ fn initialize(instructions: &[Instruction]) -> HashMap<char, i64> {
             Instruction::Jump(rx, ry) => {
                 rx.initialize(&mut registers);
                 ry.initialize(&mut registers);
+            }
+        }
+    }
+    registers
+}
+
+fn initialize2(instructions: &[Instruction], id: i64) -> HashMap<char, i64> {
+    let mut registers = HashMap::new();
+    for instruction in instructions {
+        match instruction {
+            Instruction::Send(rx) => {
+                rx.initialize2(&mut registers, id);
+            }
+            Instruction::Set(rx, ry) => {
+                rx.initialize2(&mut registers, id);
+                ry.initialize2(&mut registers, id);
+            }
+            Instruction::Add(rx, ry) => {
+                rx.initialize2(&mut registers, id);
+                ry.initialize2(&mut registers, id);
+            }
+            Instruction::Mul(rx, ry) => {
+                rx.initialize2(&mut registers, id);
+                ry.initialize2(&mut registers, id);
+            }
+            Instruction::Mod(rx, ry) => {
+                rx.initialize2(&mut registers, id);
+                ry.initialize2(&mut registers, id);
+            }
+            Instruction::Recover(rx) => {
+                rx.initialize2(&mut registers, id);
+            }
+            Instruction::Jump(rx, ry) => {
+                rx.initialize2(&mut registers, id);
+                ry.initialize2(&mut registers, id);
             }
         }
     }
@@ -273,4 +405,20 @@ jgz a -2"#,
     );
 
     assert_eq!(answer1(&input), 4);
+}
+
+#[test]
+fn test_answer2() {
+    let input = String::from(
+        r#"
+snd 1
+snd 2
+snd p
+rcv a
+rcv b
+rcv c
+rcv d"#,
+    );
+
+    assert_eq!(answer2(&input), 3);
 }
