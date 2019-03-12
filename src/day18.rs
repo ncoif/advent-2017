@@ -6,43 +6,74 @@ pub fn title() -> &'static str {
 }
 
 #[derive(Debug, PartialEq)]
+struct Register {
+    var: Option<char>,
+    val: Option<i64>,
+}
+
+impl FromStr for Register {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Register, ()> {
+        let val = i64::from_str_radix(s, 10);
+        return if val.is_ok() {
+            Ok(Register {
+                var: None,
+                val: Some(val.unwrap()),
+            })
+        } else {
+            let var = common::to_char(s);
+            Ok(Register {
+                var: Some(var),
+                val: None,
+            })
+        };
+    }
+}
+
+#[derive(Debug, PartialEq)]
 enum Instruction {
-    Send(char),
-    Set(char, i32),
-    Add(char, i32),
-    Mul(char, char),
-    Mod(char, char),
-    Recover(char),
-    Jump(char, i32),
+    Send(Register),
+    Set(Register, Register),
+    Add(Register, Register),
+    Mul(Register, Register),
+    Mod(Register, Register),
+    Recover(Register),
+    Jump(Register, Register),
 }
 
 impl FromStr for Instruction {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Instruction, ()> {
+        dbg!(&s);
         let mut words = s.split(' ');
         match words.next() {
-            Some("snd") => Ok(Instruction::Send(common::to_char(words.next().unwrap()))),
+            Some("snd") => Ok(Instruction::Send(
+                Register::from_str(words.next().unwrap()).unwrap(),
+            )),
             Some("set") => Ok(Instruction::Set(
-                common::to_char(words.next().unwrap()),
-                i32::from_str_radix(words.next().unwrap(), 10).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("add") => Ok(Instruction::Add(
-                common::to_char(words.next().unwrap()),
-                i32::from_str_radix(words.next().unwrap(), 10).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("mul") => Ok(Instruction::Mul(
-                common::to_char(words.next().unwrap()),
-                common::to_char(words.next().unwrap()),
+                Register::from_str(words.next().unwrap()).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("mod") => Ok(Instruction::Mod(
-                common::to_char(words.next().unwrap()),
-                common::to_char(words.next().unwrap()),
+                Register::from_str(words.next().unwrap()).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
             )),
-            Some("rcv") => Ok(Instruction::Recover(common::to_char(words.next().unwrap()))),
+            Some("rcv") => Ok(Instruction::Recover(
+                Register::from_str(words.next().unwrap()).unwrap(),
+            )),
             Some("jgz") => Ok(Instruction::Jump(
-                common::to_char(words.next().unwrap()),
-                i32::from_str_radix(words.next().unwrap(), 10).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
+                Register::from_str(words.next().unwrap()).unwrap(),
             )),
             _ => Err(()),
         }
@@ -52,6 +83,7 @@ impl FromStr for Instruction {
 pub fn answer1(input: &str) -> u32 {
     let instructions = parse_input(input);
     dbg!(&instructions);
+
     0
 }
 
@@ -66,12 +98,38 @@ fn parse_input(input: &str) -> Vec<Instruction> {
 }
 
 #[test]
+fn test_register_from_str() {
+    assert_eq!(
+        Register::from_str(&"a".to_string()).unwrap(),
+        Register {
+            var: Some('a'),
+            val: None
+        }
+    );
+    assert_eq!(
+        Register::from_str(&"-1".to_string()).unwrap(),
+        Register {
+            var: None,
+            val: Some(-1)
+        }
+    );
+}
+
+#[test]
 fn test_instruction_from_str() {
     let input = String::from(r#"jgz a -1"#);
+    let a = Register {
+        var: Some('a'),
+        val: None,
+    };
+    let minus_one = Register {
+        var: None,
+        val: Some(-1),
+    };
 
     assert_eq!(
         Instruction::from_str(&input).unwrap(),
-        Instruction::Jump('a', -1)
+        Instruction::Jump(a, minus_one)
     );
 }
 
@@ -87,6 +145,7 @@ snd a
 set a 0
 rcv a
 jgz a -1
+jgz a p
 set a 1
 jgz a -2"#,
     );
