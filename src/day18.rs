@@ -7,9 +7,9 @@ pub fn title() -> &'static str {
 }
 
 #[derive(Debug, PartialEq)]
-struct Register {
-    var: Option<char>,
-    val: Option<i64>,
+enum Register {
+    Var(char),
+    Val(i64),
 }
 
 impl FromStr for Register {
@@ -17,36 +17,21 @@ impl FromStr for Register {
 
     fn from_str(s: &str) -> Result<Register, ()> {
         let val = i64::from_str_radix(s, 10);
-
-        if val.is_ok() {
-            Ok(Register {
-                var: None,
-                val: Some(val.unwrap()),
-            })
-        } else {
-            let var = common::to_char(s);
-            Ok(Register {
-                var: Some(var),
-                val: None,
-            })
+        match val {
+            Ok(val) => Ok(Register::Val(val)),
+            _ => Ok(Register::Var(common::to_char(s))),
         }
-    }
-}
-
-impl Register {
-    fn var(&self) -> char {
-        self.var.unwrap()
     }
 }
 
 #[derive(Debug, PartialEq)]
 enum Instruction {
     Send(Register),
-    Set(Register, Register),
-    Add(Register, Register),
-    Mul(Register, Register),
-    Mod(Register, Register),
-    Recover(Register),
+    Set(char, Register),
+    Add(char, Register),
+    Mul(char, Register),
+    Mod(char, Register),
+    Recover(char),
     Jump(Register, Register),
 }
 
@@ -60,24 +45,22 @@ impl FromStr for Instruction {
                 Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("set") => Ok(Instruction::Set(
-                Register::from_str(words.next().unwrap()).unwrap(),
+                common::to_char(words.next().unwrap()),
                 Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("add") => Ok(Instruction::Add(
-                Register::from_str(words.next().unwrap()).unwrap(),
+                common::to_char(words.next().unwrap()),
                 Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("mul") => Ok(Instruction::Mul(
-                Register::from_str(words.next().unwrap()).unwrap(),
+                common::to_char(words.next().unwrap()),
                 Register::from_str(words.next().unwrap()).unwrap(),
             )),
             Some("mod") => Ok(Instruction::Mod(
-                Register::from_str(words.next().unwrap()).unwrap(),
-                Register::from_str(words.next().unwrap()).unwrap(),
-            )),
-            Some("rcv") => Ok(Instruction::Recover(
+                common::to_char(words.next().unwrap()),
                 Register::from_str(words.next().unwrap()).unwrap(),
             )),
+            Some("rcv") => Ok(Instruction::Recover(common::to_char(words.next().unwrap()))),
             Some("jgz") => Ok(Instruction::Jump(
                 Register::from_str(words.next().unwrap()).unwrap(),
                 Register::from_str(words.next().unwrap()).unwrap(),
@@ -114,23 +97,23 @@ impl<'a> Program<'a> {
             self.pc += 1;
             match instruction {
                 Instruction::Send(rx) => {
-                    other_queue.push_back(self.get(&rx));
+                    other_queue.push_back(self.get_val(&rx));
                 }
                 Instruction::Set(rx, ry) => {
-                    self.regs.insert(rx.var(), self.get(&ry));
+                    self.regs.insert(*rx, self.get_val(&ry));
                 }
                 Instruction::Add(rx, ry) => {
-                    self.regs.insert(rx.var(), self.get(&rx) + self.get(&ry));
+                    self.regs.insert(*rx, self.regs[rx] + self.get_val(&ry));
                 }
                 Instruction::Mul(rx, ry) => {
-                    self.regs.insert(rx.var(), self.get(&rx) * self.get(&ry));
+                    self.regs.insert(*rx, self.regs[rx] * self.get_val(&ry));
                 }
                 Instruction::Mod(rx, ry) => {
-                    self.regs.insert(rx.var(), self.get(&rx) % self.get(&ry));
+                    self.regs.insert(*rx, self.regs[rx] % self.get_val(&ry));
                 }
                 Instruction::Recover(rx) => match my_queue.pop_front() {
                     Some(val) => {
-                        self.regs.insert(rx.var(), val);
+                        self.regs.insert(*rx, val);
                     }
                     None => {
                         self.pc -= 1;
@@ -138,8 +121,8 @@ impl<'a> Program<'a> {
                     }
                 },
                 Instruction::Jump(rx, ry) => {
-                    if self.get(&rx) > 0 {
-                        self.pc += self.get(&ry) - 1;
+                    if self.get_val(&rx) > 0 {
+                        self.pc += self.get_val(&ry) - 1;
                     }
                 }
             }
@@ -147,11 +130,10 @@ impl<'a> Program<'a> {
         true
     }
 
-    fn get(&self, r: &Register) -> i64 {
-        if r.val.is_some() {
-            r.val.unwrap()
-        } else {
-            self.regs[&r.var.unwrap()]
+    fn get_val(&self, r: &Register) -> i64 {
+        match r {
+            Register::Var(v) => self.regs[&v],
+            Register::Val(v) => *v,
         }
     }
 }
@@ -171,26 +153,26 @@ pub fn answer1(input: &str) -> i64 {
         pc += 1;
         match instruction {
             Instruction::Send(rx) => {
-                freq = get(&regs, rx);
+                freq = get_val(&regs, rx);
             }
             Instruction::Set(rx, ry) => {
-                regs.insert(rx.var(), get(&regs, ry));
+                regs.insert(*rx, get_val(&regs, ry));
             }
             Instruction::Add(rx, ry) => {
-                regs.insert(rx.var(), get(&regs, rx) + get(&regs, ry));
+                regs.insert(*rx, regs[rx] + get_val(&regs, ry));
             }
             Instruction::Mul(rx, ry) => {
-                regs.insert(rx.var(), get(&regs, rx) * get(&regs, ry));
+                regs.insert(*rx, regs[rx] * get_val(&regs, ry));
             }
             Instruction::Mod(rx, ry) => {
-                regs.insert(rx.var(), get(&regs, rx) % get(&regs, ry));
+                regs.insert(*rx, regs[rx] % get_val(&regs, ry));
             }
             Instruction::Recover(_rx) => {
                 return freq;
             }
             Instruction::Jump(rx, ry) => {
-                if get(&regs, rx) > 0 {
-                    pc += get(&regs, ry) - 1;
+                if get_val(&regs, rx) > 0 {
+                    pc += get_val(&regs, ry) - 1;
                 }
             }
         }
@@ -199,11 +181,10 @@ pub fn answer1(input: &str) -> i64 {
     freq
 }
 
-fn get(regs: &HashMap<char, i64>, r: &Register) -> i64 {
-    if r.val.is_some() {
-        r.val.unwrap()
-    } else {
-        regs[&r.var.unwrap()]
+fn get_val(regs: &HashMap<char, i64>, r: &Register) -> i64 {
+    match r {
+        Register::Var(v) => regs[&v],
+        Register::Val(v) => *v,
     }
 }
 
@@ -245,35 +226,21 @@ fn parse_input(input: &str) -> Vec<Instruction> {
 fn test_register_from_str() {
     assert_eq!(
         Register::from_str(&"a".to_string()).unwrap(),
-        Register {
-            var: Some('a'),
-            val: None
-        }
+        Register::Var('a')
     );
     assert_eq!(
         Register::from_str(&"-1".to_string()).unwrap(),
-        Register {
-            var: None,
-            val: Some(-1)
-        }
+        Register::Val(-1)
     );
 }
 
 #[test]
 fn test_instruction_from_str() {
     let input = String::from(r#"jgz a -1"#);
-    let a = Register {
-        var: Some('a'),
-        val: None,
-    };
-    let minus_one = Register {
-        var: None,
-        val: Some(-1),
-    };
 
     assert_eq!(
         Instruction::from_str(&input).unwrap(),
-        Instruction::Jump(a, minus_one)
+        Instruction::Jump(Register::Var('a'), Register::Val(-1))
     );
 }
 
