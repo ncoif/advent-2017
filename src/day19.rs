@@ -21,6 +21,26 @@ pub fn answer1(input: &str) -> String {
     String::from_utf8(state.current).unwrap()
 }
 
+pub fn answer2(input: &str) -> usize {
+    let grid = parse_input(input);
+
+    // find starting x
+    let start_idx: usize = grid[0]
+        .iter()
+        .position(|&x| x == b'|')
+        .expect("Not starting x found");
+
+    let mut state = State::new(grid);
+    let mut steps = 1; // because we don't step on the first cell
+    state.move_cell(start_idx, 0, Dir::Down);
+    while !state.is_end(state.x, state.y, state.dir) {
+        step(&mut state);
+        steps += 1;
+    }
+
+    steps
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Dir {
     Left,
@@ -171,4 +191,19 @@ fn test_answer1() {
     );
 
     assert_eq!(answer1(&input), "ABCDEF".to_string());
+}
+
+#[test]
+fn test_answer2() {
+    let input = String::from(
+        r#"
+        |
+        |  +--+
+        A  |  C
+    F---|----E|--+
+        |  |  |  D
+        +B-+  +--+"#,
+    );
+
+    assert_eq!(answer2(&input), 38);
 }
