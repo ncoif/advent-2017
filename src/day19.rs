@@ -4,24 +4,24 @@ pub fn title() -> &'static str {
 
 pub fn answer1(input: &str) -> String {
     let grid = parse_input(input);
-    //dbg!(&grid);
 
     // find starting x
     let start_idx: usize = grid[0]
         .iter()
-        .position(|&x| x == '|' as u8)
+        .position(|&x| x == b'|')
         .expect("Not starting x found");
-    dbg!(start_idx);
 
-    let mut result: Vec<u8> = vec![];
-    step(&grid, start_idx, 0, &mut result, Dir::Down);
-    dbg!(&result);
+    let mut state = State::new(grid);
+    state.move_cell(start_idx, 0, Dir::Down);
+    while !state.is_end(state.x, state.y, state.dir) {
+        step(&mut state);
+    }
 
     //https://stackoverflow.com/questions/41034635/idiomatic-transformations-for-string-str-vecu8-and-u8
-    std::str::from_utf8(&result).unwrap().trim().to_string()
+    String::from_utf8(state.current).unwrap()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Dir {
     Left,
     Right,
@@ -29,89 +29,114 @@ enum Dir {
     Up,
 }
 
-fn step(grid: &Vec<Vec<u8>>, x: usize, y: usize, current: &mut Vec<u8>, direction: Dir) {
-    dbg!((grid[y][x], &direction));
-    match (grid[y][x], direction) {
-        (b'|', Dir::Up) => step(grid, x, y - 1, current, Dir::Up),
-        (b'|', Dir::Down) => step(grid, x, y + 1, current, Dir::Down),
-        (b'-', Dir::Up) => step(grid, x, y - 1, current, Dir::Up),
-        (b'-', Dir::Down) => step(grid, x, y + 1, current, Dir::Down),
-        (b'-', Dir::Left) => {
-            if x == 0 {
-                return;
-            } else {
-                step(grid, x - 1, y, current, Dir::Left)
+#[derive(Debug)]
+struct State {
+    grid: Vec<Vec<u8>>,
+    x: usize,
+    y: usize,
+    dir: Dir,
+    current: Vec<u8>,
+}
+
+impl State {
+    fn new(grid: Vec<Vec<u8>>) -> Self {
+        State {
+            grid,
+            x: 0,
+            y: 0,
+            dir: Dir::Down,
+            current: vec![],
+        }
+    }
+
+    fn move_cell(&mut self, x: usize, y: usize, direction: Dir) {
+        let cur = self.grid[y][x];
+        if cur != b' ' && cur != b'+' && cur != b'-' && cur != b'|' {
+            self.current.push(cur);
+        }
+
+        self.x = x;
+        self.y = y;
+        self.dir = direction;
+    }
+
+    fn is_valid(&self, x: usize, y: usize) -> bool {
+        x > 0 && x < self.grid[0].len() && y > 0 && y < self.grid.len()
+    }
+
+    fn is_blank(&self, x: usize, y: usize) -> bool {
+        self.grid[y][x] == b' '
+    }
+
+    fn is_valid_blank(&self, x: usize, y: usize) -> bool {
+        self.is_valid(x, y) && self.is_blank(x, y)
+    }
+
+    fn is_valid_not_blank(&self, x: usize, y: usize) -> bool {
+        self.is_valid(x, y) && !self.is_blank(x, y)
+    }
+
+    fn is_end(&self, x: usize, y: usize, direction: Dir) -> bool {
+        if self.grid[y][x] == b'+' {
+            match direction {
+                Dir::Up => self.is_valid_blank(x - 1, y) && self.is_valid_blank(x + 1, y),
+                Dir::Down => self.is_valid_blank(x - 1, y) && self.is_valid_blank(x + 1, y),
+                Dir::Left => self.is_valid_blank(x, y - 1) && self.is_valid_blank(x, y + 1),
+                Dir::Right => self.is_valid_blank(x, y - 1) && self.is_valid_blank(x, y + 1),
+            }
+        } else {
+            match direction {
+                Dir::Up => self.is_valid_blank(x, y - 1),
+                Dir::Down => self.is_valid_blank(x, y + 1),
+                Dir::Left => self.is_valid_blank(x - 1, y),
+                Dir::Right => self.is_valid_blank(x + 1, y),
             }
         }
-        (b'-', Dir::Right) => step(grid, x + 1, y, current, Dir::Right),
-        (b'|', Dir::Left) => {
-            if x == 0 {
-                return;
-            } else {
-                step(grid, x - 1, y, current, Dir::Left)
-            }
-        }
-        (b'|', Dir::Right) => step(grid, x + 1, y, current, Dir::Right),
+    }
+}
+
+fn step(s: &mut State) {
+    match (s.grid[s.y][s.x], s.dir) {
         (b'+', Dir::Up) => {
-            if x - 1 > 0 && grid[y][x - 1] != ' ' as u8 {
-                step(grid, x - 1, y, current, Dir::Left)
-            } else if x + 1 < grid[0].len() && grid[y][x + 1] != ' ' as u8 {
-                step(grid, x + 1, y, current, Dir::Right)
+            if s.is_valid_not_blank(s.x - 1, s.y) {
+                s.move_cell(s.x - 1, s.y, Dir::Left)
+            } else if s.is_valid_not_blank(s.x + 1, s.y) {
+                s.move_cell(s.x + 1, s.y, Dir::Right)
             } else {
                 unreachable!()
             }
         }
         (b'+', Dir::Down) => {
-            if x - 1 > 0 && grid[y][x - 1] != ' ' as u8 {
-                step(grid, x - 1, y, current, Dir::Left)
-            } else if x + 1 < grid[0].len() && grid[y][x + 1] != ' ' as u8 {
-                step(grid, x + 1, y, current, Dir::Right)
+            if s.is_valid_not_blank(s.x - 1, s.y) {
+                s.move_cell(s.x - 1, s.y, Dir::Left)
+            } else if s.is_valid_not_blank(s.x + 1, s.y) {
+                s.move_cell(s.x + 1, s.y, Dir::Right)
             } else {
                 unreachable!()
             }
         }
         (b'+', Dir::Left) => {
-            if y - 1 > 0 && grid[y - 1][x] != ' ' as u8 {
-                step(grid, x, y - 1, current, Dir::Up)
-            } else if y + 1 < grid.len() && grid[y + 1][x] != ' ' as u8 {
-                step(grid, x, y + 1, current, Dir::Down)
+            if s.is_valid_not_blank(s.x, s.y - 1) {
+                s.move_cell(s.x, s.y - 1, Dir::Up)
+            } else if s.is_valid_not_blank(s.x, s.y + 1) {
+                s.move_cell(s.x, s.y + 1, Dir::Down)
             } else {
                 unreachable!()
             }
         }
         (b'+', Dir::Right) => {
-            if y - 1 > 0 && grid[y - 1][x] != ' ' as u8 {
-                step(grid, x, y - 1, current, Dir::Up)
-            } else if y + 1 < grid.len() && grid[y + 1][x] != ' ' as u8 {
-                step(grid, x, y + 1, current, Dir::Down)
+            if s.is_valid_not_blank(s.x, s.y - 1) {
+                s.move_cell(s.x, s.y - 1, Dir::Up)
+            } else if s.is_valid_not_blank(s.x, s.y + 1) {
+                s.move_cell(s.x, s.y + 1, Dir::Down)
             } else {
                 unreachable!()
             }
         }
-        (v, Dir::Up) => {
-            // that's a letter
-            current.push(v);
-            step(grid, x, y - 1, current, Dir::Up)
-        }
-        (v, Dir::Down) => {
-            // that's a letter
-            current.push(v);
-            step(grid, x, y + 1, current, Dir::Down)
-        }
-        (v, Dir::Left) => {
-            // that's a letter
-            current.push(v);
-            if x == 0 {
-                return;
-            } else {
-                step(grid, x - 1, y, current, Dir::Left)
-            }
-        }
-        (v, Dir::Right) => {
-            // that's a letter
-            current.push(v);
-            step(grid, x + 1, y, current, Dir::Right)
-        }
+        (_, Dir::Up) => s.move_cell(s.x, s.y - 1, Dir::Up),
+        (_, Dir::Down) => s.move_cell(s.x, s.y + 1, Dir::Down),
+        (_, Dir::Left) => s.move_cell(s.x - 1, s.y, Dir::Left),
+        (_, Dir::Right) => s.move_cell(s.x + 1, s.y, Dir::Right),
     };
 }
 
@@ -127,7 +152,7 @@ pub fn parse_input(input: &str) -> Vec<Vec<u8>> {
     // padd all the lines with ' ' to get a square grid
     grid.iter_mut().for_each(|line| {
         let padd_length = x_max - line.len();
-        (0..padd_length).for_each(|_| line.push(' ' as u8));
+        (0..padd_length).for_each(|_| line.push(b' '));
     });
 
     grid
